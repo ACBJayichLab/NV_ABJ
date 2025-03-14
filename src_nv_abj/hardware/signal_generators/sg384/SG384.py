@@ -123,9 +123,10 @@ if __name__ == "__main__":
     list_data = rm.list_resources()
     print(list_data)
 
+    
     srs_info = "GPIB0::27::INSTR"
 
-    Srs = SrsComs.make_gpib_connection(srs_info)
+    Srs = SG384.make_gpib_connection(srs_info)
     Srs.check_connection()
     Srs.change_frequency(3500)
     print(Srs.get_frequency())
@@ -139,11 +140,4 @@ if __name__ == "__main__":
 
     Srs.rf_off()
     print(Srs.rf_state())
-
-# some other commands used by IQ
-# fprintf(obj.srs, ['MODL ', '1']);
-# fprintf(obj.srs, ['TYPE ', '6']);
-# fprintf(obj.srs, ['QFNC ', '5']);
-
-# Need to add list capabilities for list trigger
-# Probably good for a randomized list function as well so heating is not correlated 
+    
