@@ -1,29 +1,19 @@
-from abc import abstractmethod
-from qudi.core import Base
+import os
+import sys
+import inspect
 
-class SignalGenerator(Base):
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir) 
 
-    @abstractmethod
-    def set_frequency(self,val):
-        pass
-
+from SignalGenerator import SignalGenerator
 
 import pyvisa
-class SG384(SignalGenerator):
-
+class SG384:
     def __init__(self,gpib_identification,gpib_class):
 
         self.gpib_identification = gpib_identification
         self.gpib_class = gpib_class
-    
-    def set_frequency(self,val):
-        self.change_frequency(val)
-
-    def on_activate(self):
-        self.rf_on()
-
-    def on_deactivate(self):
-        self.rf_off()
 
     def modulation_on(self):
         self.gpib_class.write("MODL 1")
@@ -34,7 +24,7 @@ class SG384(SignalGenerator):
     def modulation_state(self):
         return self.gpib_class.query("MODL?")
     
-    def modulation_type(self,type:int):
+    def modulation_type(self,tpye:int):
         """
         0 = AM
         1 = FM
@@ -137,27 +127,28 @@ class SG384(SignalGenerator):
 
 
 if __name__ == "__main__":
+    print("Test")
+    SignalGenerator.tester()
 
-        
-    rm = pyvisa.ResourceManager()
-    list_data = rm.list_resources()
-    print(list_data)
+    # rm = pyvisa.ResourceManager()
+    # list_data = rm.list_resources()
+    # print(list_data)
 
     
-    srs_info = "GPIB0::27::INSTR"
+    # srs_info = "GPIB0::27::INSTR"
 
-    Srs = SG384.make_gpib_connection(srs_info)
-    Srs.check_connection()
-    Srs.change_frequency(3500)
-    print(Srs.get_frequency())
-    Srs.change_amplitude_n_type(-100)
-    print(Srs.get_amplitude())
-    Srs.change_phase(10)
-    print(Srs.get_phase())
+    # Srs = SG384.make_gpib_connection(srs_info)
+    # Srs.check_connection()
+    # Srs.change_frequency(3500)
+    # print(Srs.get_frequency())
+    # Srs.change_amplitude_n_type(-100)
+    # print(Srs.get_amplitude())
+    # Srs.change_phase(10)
+    # print(Srs.get_phase())
 
-    Srs.rf_on()
-    print(Srs.rf_state())
+    # Srs.rf_on()
+    # print(Srs.rf_state())
 
-    Srs.rf_off()
-    print(Srs.rf_state())
+    # Srs.rf_off()
+    # print(Srs.rf_state())
     
