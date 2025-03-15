@@ -1,9 +1,29 @@
+from abc import abstractmethod
+from qudi.core import Base
+
+class SignalGenerator(Base):
+
+    @abstractmethod
+    def set_frequency(self,val):
+        pass
+
+
 import pyvisa
-class SG384:
+class SG384(SignalGenerator):
+
     def __init__(self,gpib_identification,gpib_class):
 
         self.gpib_identification = gpib_identification
         self.gpib_class = gpib_class
+    
+    def set_frequency(self,val):
+        self.change_frequency(val)
+
+    def on_activate(self):
+        self.rf_on()
+
+    def on_deactivate(self):
+        self.rf_off()
 
     def modulation_on(self):
         self.gpib_class.write("MODL 1")
@@ -14,7 +34,7 @@ class SG384:
     def modulation_state(self):
         return self.gpib_class.query("MODL?")
     
-    def modulation_type(self,tpye:int):
+    def modulation_type(self,type:int):
         """
         0 = AM
         1 = FM
