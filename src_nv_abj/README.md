@@ -2,9 +2,9 @@
 
 This is a base conversion from matlab to a pythonic system that uses qudi to operate the experimental aparatus
 
-# Installing 
+# Installing
 
-navigate to source folder *src_nv_abj* and enter into your terminal the following commands 
+navigate to source folder *src_nv_abj* and enter into your terminal the following commands
 
 ```
 pip install --upgrade build
@@ -21,3 +21,18 @@ Python 3.10
 ### Installed Packages
 
 # Methodology
+
+# Python 
+
+## Deprecating parts of the code
+
+**Don't just delete it or have it error out!**
+
+```
+from warnings import deprecated 
+
+
+@deprecated("Deprecation message here")
+def funct(x,y,z):
+	pass
+```
