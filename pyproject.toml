@@ -5,7 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "NV_ABJ"
 version = "0.0.01"
-dependencies = []
+dependencies = ["pyvisa",
+                "numpy",
+                "scipy",
+                "pandas",
+                "nidaqmx"
+                ]
 requires-python = ">=3.9"
 authors = [
   {name = "Aaron Schwan", email = "schwanaaron@gmail.com"},
@@ -20,10 +25,6 @@ keywords = ["NV", "ABJ", "image scan"]
 classifiers = [
   "Programming Language :: Python"
 ]
-
-[project.optional-dependencies]
-gui = ["PyQt5"]
-
 
 [project.urls]
 Homepage = "https://github.com/ACBJayichLab/NV_ABJ"
