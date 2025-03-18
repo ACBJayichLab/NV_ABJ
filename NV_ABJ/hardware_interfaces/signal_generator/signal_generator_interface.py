@@ -1,7 +1,8 @@
-from abc import abstractmethod
-from qudi.core import Base
+__all__ = ["SignalGeneratorInterface"]
 
-class SignalGeneratorInterface(Base):
+from abc import abstractmethod
+
+class SignalGeneratorInterface:
     """This is a class for a signal generator not limited to but used for control of the RF supplied to the NV and allows for a general 
     implementation for the singal frequency generators 
     """

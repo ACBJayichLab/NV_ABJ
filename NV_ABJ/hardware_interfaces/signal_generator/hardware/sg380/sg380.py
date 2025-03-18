@@ -1,10 +1,10 @@
 # importing the interface module 
-from NV_ABJ.interface.signal_generator_interface import SignalGeneratorInterface
+from NV_ABJ import SignalGeneratorInterface
 
 # importing third party modules 
 import pyvisa
 
-class SG384(SignalGeneratorInterface):
+class SG380(SignalGeneratorInterface):
     """This is a implementation for the SG384 for the base qudi application with the signal generator code 
     """
 
@@ -26,30 +26,34 @@ class SG384(SignalGeneratorInterface):
 
     # Class methods for making new instances 
     @classmethod
-    def make_gpib_connection(cls,gpib_identification:str,frequency_hz_range_low:float,frequency_hz_range_high:float,power_dbm_low:float,power_dbm_high:float):
+    def make_gpib_connection(cls,gpib_identification:str,use_n_type_port:bool=True):
         
-        # Getting device constraints 
-        freq_range = (frequency_hz_range_low,frequency_hz_range_high)
-        power_range = (power_dbm_low,power_dbm_high)
-
         # Takes a daq card id, daq channel, and a gpib id and returns a class to control the srs
         srs = pyvisa.ResourceManager().open_resource(gpib_identification)
-        return cls(gpib_identification,srs,freq_range,power_range)
+        response = str(srs.query("*IDN?"))
+
+        if use_n_type_port:
+            if "SG382" in response:
+                    freq_range = (950*pow(10,3),2.025*pow(10,9))
+                    power_range = (-110,13)
+            elif "SG384" in response:
+                    freq_range = (950*pow(10,3),4.050*pow(10,9))
+                    power_range = (-110,13)
+            elif "SG386" in response:
+                    freq_range = (950*pow(10,3),6.075*pow(10,9))
+                    power_range = (-110,13)
+            else:
+                raise Exception(f"The model of SRS SG380 is not recognized at {gpib_identification}")
+        else:
+            freq_range = (0,62.5*pow(10,6))
+            power_range = (-47,13)
+
+        return cls(gpib_identification,srs,freq_range,power_range,use_n_type_port)
 
 
     #########################################################################################################################################################################    
     # Implementation of the abstract signal generator functions 
     #########################################################################################################################################################################    
-    def on_activate(self):
-        """ Initialization performed during activation of the module.
-        """
-        pass
-
-    def on_deactivate(self):
-        """ Cleanup performed during deactivation of the module.
-        """
-        pass
-
     @property
     def frequency_range_hz(self):
         """This is meant to take in the frequency range of the device as a tuple in Hz
@@ -65,7 +69,7 @@ class SG384(SignalGeneratorInterface):
     def set_frequency_hz(self,frequency):
         """sets the frequency of the srs 
         """
-        self.change_frequency(frequency)
+        self.change_frequency(frequency/pow(10,6))
 
 
     def set_power_dbm(self,amplitude):
@@ -229,35 +233,10 @@ class SG384(SignalGeneratorInterface):
         else:
             raise Exception("Failed to confirm srs connection id may be incorrect")
         
-    
+
 
 if __name__ == "__main__":
-
-    # Listing all available ports
-    rm = pyvisa.ResourceManager()
-    list_data = rm.list_resources()
-    print(list_data)
-
-    
-    srs_info = "GPIB0::27::INSTR"
-    frequency_hz_range_low = 950*pow(10,3)
-    frequency_hz_range_high = 4.050*pow(10,9)
-    power_dbm_low = -110
-    power_dbm_high = 16.5
-    
-
-    Srs = SG384.make_gpib_connection(srs_info,frequency_hz_range_low,frequency_hz_range_high,power_dbm_low,power_dbm_high)
-    # Srs.check_connection()
-    # Srs.change_frequency(3500)
-    # print(Srs.get_frequency())
-    # Srs.change_amplitude_n_type(-100)
-    # print(Srs.get_amplitude())
-    # Srs.change_phase(10)
-    # print(Srs.get_phase())
-
-    # Srs.rf_on()
-    # print(Srs.rf_state())
-
-    # Srs.rf_off()
-    # print(Srs.rf_state())
-    
+    srs = SG380.make_gpib_connection(gpib_identification='GPIB0::27::INSTR')
+    srs.clear_status()
+    srs.set_frequency_hz(2_000_000)
+    srs.set_power_dbm(-102)
