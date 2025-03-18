@@ -4,7 +4,7 @@ from NV_ABJ.interface.signal_generator_interface import SignalGeneratorInterface
 # importing third party modules 
 import pyvisa
 
-class SG384(SignalGenerator):
+class SG384(SignalGeneratorInterface):
     """This is a implementation for the SG384 for the base qudi application with the signal generator code 
     """
 
