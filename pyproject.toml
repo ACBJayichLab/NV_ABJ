@@ -28,8 +28,8 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/ACBJayichLab/NV_ABJ"
-Documentation = "https://github.com/ACBJayichLab/NV_ABJ"
+Documentation = "https://github.com/ACBJayichLab/NV_ABJ.wiki.git"
 Repository = "https://github.com/ACBJayichLab/NV_ABJ"
 "Bug Tracker" = "https://github.com/ACBJayichLab/NV_ABJ/issues"
-Changelog = "https://github.com/ACBJayichLab/NV_ABJ"
+Changelog = "https://github.com/ACBJayichLab/NV_ABJ/pulse"
 
