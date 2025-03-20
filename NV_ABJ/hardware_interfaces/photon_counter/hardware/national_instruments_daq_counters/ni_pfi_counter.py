@@ -265,15 +265,18 @@ if __name__ == "__main__":
 
         print("Continuously polling. Press Ctrl+C to stop.")
         task.start()
-    
+        previous_count = 0
+        total_read = 0
+
         try:
-            total_read = 0
+            
             while True:
-                edge_counts = task.read(number_of_samples_per_channel=1)
-                total_read += len(edge_counts)
                 
-                print(f"Acquired data: {edge_counts[0]}", end="\r")
-                edge_counts = 0
+                edge_counts = task.read()#number_of_samples_per_channel=1)
+                #total_read += len(edge_counts)
+                
+                print(f"Acquired data: {edge_counts-previous_count}", end="\r")
+                previous_count = edge_counts
         except KeyboardInterrupt:
             pass
         finally:
