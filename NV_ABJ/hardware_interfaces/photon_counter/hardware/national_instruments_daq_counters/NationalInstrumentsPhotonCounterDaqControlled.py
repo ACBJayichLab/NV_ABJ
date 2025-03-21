@@ -63,11 +63,12 @@ class NationalInstrumentsPhotonCounterDaqControlled:
 
             # The clock speed does not determine how fast we can count the click it determines how often we check with the daq how many counts have been gotten 
             # Configuring sampling rate and time we need to know our devices max rate to determine if the dwell time is too short 
+            max_clock = nidaqmx.system.device.Device(self.device_name).ci_max_timebase
             max_sampling_rate = samp_clk_task.timing.samp_clk_max_rate
 
             # finding a clock frequency multiplied the number of cycles to convert to seconds the natural time in the daq
             # The dwell time is modified by adding on cycle of clock time this is to account for a starting count and amounts to the fence post error
-            clock_frequency = number_of_clock_cycles*pow(10,9)/(dwell_time_nano_seconds+pow(10,9)/(2*max_sampling_rate)) 
+            clock_frequency = number_of_clock_cycles*pow(10,9)/(dwell_time_nano_seconds+pow(10,9)/(2*max_clock)) 
             # Checks if the minimum conditions are reached
             if clock_frequency > max_sampling_rate:
                 raise ValueError(f"The selected dwell time does not allow for {number_of_clock_cycles} clock cycles with a max sample rate of {max_sampling_rate}")
@@ -163,6 +164,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
             # Creating a digital channel that will set the sampling speed for the taken data
             # This is the task that determines how long we sample for so if we have a rate of 100 Hz and take 10 samples
             # The time spent collect photons is 0.1 seconds 
+            max_clock = nidaqmx.system.device.Device(self.device_name).ci_max_timebase
             samp_clk_task.di_channels.add_di_chan(f"{self.device_name}/{self.port}")
             
 
@@ -171,7 +173,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
             max_sampling_rate = samp_clk_task.timing.samp_clk_max_rate
             # finding a clock frequency multiplied the number of cycles to convert to seconds the natural time in the daq
             # The dwell time is modified by adding on cycle of clock time this is to account for a starting count and amounts to the fence post error
-            clock_frequency = number_of_clock_cycles*pow(10,9)/(dwell_time_nano_seconds+pow(10,9)/(2*max_sampling_rate))             # Checks if the minimum conditions are reached
+            clock_frequency = number_of_clock_cycles*pow(10,9)/(dwell_time_nano_seconds+pow(10,9)/(2*max_clock))             # Checks if the minimum conditions are reached
             if clock_frequency > max_sampling_rate:
                 raise ValueError(f"The selected dwell time does not allow for {number_of_clock_cycles} with a max sample rate of {max_sampling_rate}")
 
