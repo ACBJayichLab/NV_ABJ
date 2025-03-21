@@ -9,7 +9,7 @@ from nidaqmx.constants import CountDirection, Edge, AcquisitionType, TaskMode,Tr
 
 
 
-class NationalInstrumentsPhotonCounter:
+class NationalInstrumentsPhotonCounterDaqControlled:
 
     def __init__(self,device_name:str,counter_pfi:str,trigger_pfi:str,ctr:str = "ctr0",port:str="port0"):
         """This class is an implementation for a national instruments daq to count the number of photons that we are receiving during an experiment 
