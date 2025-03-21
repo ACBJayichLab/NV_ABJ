@@ -514,31 +514,15 @@
 
 
 
-    from NV_ABJ import SignalGeneratorInterface,SG380,ConfigurationSG380
+from NV_ABJ import SignalGeneratorInterface,SG380,ConfigurationSG380
 
-    import numpy as np
-    frequency_list = np.arange(10_000_000,20_000_000,1_000_000)
+import numpy as np
+frequency_list = np.arange(10_000_000,20_000_000,1_000_000)
 
-    signal_generator_configuration = ConfigurationSG380(gpib_address = 'GPIB0::27::INSTR')
-    signal_generator_hardware = SG380
+signal_generator_configuration = ConfigurationSG380(gpib_address = 'GPIB0::27::INSTR')
+signal_generator_hardware = SG380
 
-    with SignalGeneratorInterface(signal_generator_configuration,signal_generator_hardware) as sg:
-        sg.turn_on_signal() # Turns on signal generation
-        print(sg.frequency_range_hz) # Returns the signal generators frequency range in Hz
-        print(sg.power_range_dbm) # Returns the signal generators power range in dBm
-        sg.set_frequency_hz(11_111_111) # Sets the signal generators frequency in Hz
-        sg.set_power_dbm(-62.5) # Sets the signal generators power in dBm
-        print(sg.get_frequency_hz()) # Gets the current frequency of the signal generator 
-        print(sg.get_power_dbm()) # Gets the current power of the signal generator 
-        sg.load_frequency_list_hz(frequency_list) # Loads a list of frequencies to the signal generator 
-        print(sg.get_frequency_list_hz()) # Returns the list of frequencies loaded into the signal generator 
-        sg.iterate_frequency() # Iterates to operating the next frequency in the list 
-
-
-    sg = SignalGeneratorInterface(signal_generator_configuration,signal_generator_hardware)
-    # Opens the connection
-    sg.make_connection()
-
+with SignalGeneratorInterface(signal_generator_configuration,signal_generator_hardware) as sg:
     sg.turn_on_signal() # Turns on signal generation
     print(sg.frequency_range_hz) # Returns the signal generators frequency range in Hz
     print(sg.power_range_dbm) # Returns the signal generators power range in dBm
@@ -550,5 +534,21 @@
     print(sg.get_frequency_list_hz()) # Returns the list of frequencies loaded into the signal generator 
     sg.iterate_frequency() # Iterates to operating the next frequency in the list 
 
-    # Closes the connection
-    sg.close_connection()
+
+sg = SignalGeneratorInterface(signal_generator_configuration,signal_generator_hardware)
+# Opens the connection
+sg.make_connection()
+
+sg.turn_on_signal() # Turns on signal generation
+print(sg.frequency_range_hz) # Returns the signal generators frequency range in Hz
+print(sg.power_range_dbm) # Returns the signal generators power range in dBm
+sg.set_frequency_hz(11_111_111) # Sets the signal generators frequency in Hz
+sg.set_power_dbm(-62.5) # Sets the signal generators power in dBm
+print(sg.get_frequency_hz()) # Gets the current frequency of the signal generator 
+print(sg.get_power_dbm()) # Gets the current power of the signal generator 
+sg.load_frequency_list_hz(frequency_list) # Loads a list of frequencies to the signal generator 
+print(sg.get_frequency_list_hz()) # Returns the list of frequencies loaded into the signal generator 
+sg.iterate_frequency() # Iterates to operating the next frequency in the list 
+
+# Closes the connection
+sg.close_connection()
