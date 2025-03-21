@@ -246,4 +246,3 @@ class NationalInstrumentsPhotonCounterDaqControlled:
         edge_counts = self.get_counts_raw_when_triggered(dwell_time_nano_seconds, number_of_data_taking_cycles, number_of_clock_cycles, timeout_waiting_for_data_seconds)
 
         return np.round(edge_counts*pow(10,9)/dwell_time_nano_seconds)
-    
