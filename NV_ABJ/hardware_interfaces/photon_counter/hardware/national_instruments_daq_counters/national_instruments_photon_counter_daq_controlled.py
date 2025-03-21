@@ -7,18 +7,19 @@ from numpy.typing import NDArray
 import nidaqmx
 from nidaqmx.constants import CountDirection, Edge, AcquisitionType, TaskMode,TriggerType, READ_ALL_AVAILABLE
 
+# importing base class
+from NV_ABJ import PhotonCounter
 
+class NationalInstrumentsPhotonCounterDaqControlled(PhotonCounter):
 
-class NationalInstrumentsPhotonCounterDaqControlled:
-
-    def __init__(self,device_name:str,counter_pfi:str,trigger_pfi:str,ctr:str = "ctr0",port:str="port0"):
+    def __init__(self,device_name:str,counter_pfi:str,trigger_pfi:str,ctr:str = "ctr0",port:str="port0",number_of_clock_cycles:int = 2,timeout_waiting_for_data_seconds:float = 60):
         """This class is an implementation for a national instruments daq to count the number of photons that we are receiving during an experiment 
         It requires you to define the device name, counter, and the trigger. This works on the premise that the photon counter outputs a digital signal high every time a 
         photon is acquired such that this class can count the digital highs and return them as the photons received 
 
 
         photon_counter  =  NationalInstrumentsPhotonCounter(device_name,counter_pfi,trigger_pfi)
-        photon_counter  =  NationalInstrumentsPhotonCounter(device_name,counter_pfi,trigger_pfi,ctr,port)
+        photon_counter  =  NationalInstrumentsPhotonCounter(device_name,counter_pfi,trigger_pfi,ctr,port,number_of_clock_cycles,timeout_waiting_for_data)
 
         Args:
             device_name (str): name of the national instruments device for example "PXI1Slot4"
@@ -26,14 +27,19 @@ class NationalInstrumentsPhotonCounterDaqControlled:
             trigger_pfi (str): This is used by the sequence synchronizer so that we can take data for a prescribed time this is usually "pfi#" implemented by using BNC into user# and on the terminal block connecting user# to pfi#
             ctr (str, optional): This is a counter used by the daq. If you have multiple counters running simultaneously on the same device you may need to change this to an available "ctr#". Defaults to "ctr0".
             port (str, optional): This is a digital internal port for counting cycles. If you have multiple counters running simultaneously on the same device you may need to change this to an available "port#". Defaults to "port0".
+            number_of_clock_cycles (int, optional): This is the number of clock cycles when sampling data. Defaults to 2.
+            timeout_waiting_for_data (float, optional): This is how long the daq will wait for a trigger in this case the trigger is internal and will be activated once loaded. Defaults to 60.
+
         """
         self.device_name = device_name
         self.ctr = ctr
         self.port  = port
         self.counter_pfi = counter_pfi
         self.trigger_pfi = trigger_pfi
+        self.number_of_clock_cycles = number_of_clock_cycles
+        self.timeout_waiting_for_data_seconds = timeout_waiting_for_data_seconds
     
-    def get_counts_raw(self,dwell_time_nano_seconds:int,number_of_clock_cycles:int = 2,timeout_waiting_for_data_seconds:float = 60) -> int:
+    def get_counts_raw(self,dwell_time_nano_seconds:int) -> int:
         """get_counts_raw nominally you can call it simply with 
         
             raw_counts = photon_counter.get_counts_raw(dwell_time_nano_seconds)
@@ -42,9 +48,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
 
         Args:
             dwell_time (int): This is the amount of time in nano seconds that we plan to collect photons 
-            number_of_clock_cycles (int, optional): This is the number of clock cycles when sampling data. Defaults to 2.
-            timeout_waiting_for_data (float, optional): This is how long the daq will wait for a trigger in this case the trigger is internal and will be activated once loaded. Defaults to 60.
-
+           
         Raises:
             ValueError: The if the number of clock cycles can not be achieved with the max sampling rate an error is raised 
 
@@ -68,10 +72,10 @@ class NationalInstrumentsPhotonCounterDaqControlled:
 
             # finding a clock frequency multiplied the number of cycles to convert to seconds the natural time in the daq
             # The dwell time is modified by adding on cycle of clock time this is to account for a starting count and amounts to the fence post error
-            clock_frequency = number_of_clock_cycles*pow(10,9)/(dwell_time_nano_seconds+pow(10,9)/(2*max_clock)) 
+            clock_frequency = self.number_of_clock_cycles*pow(10,9)/(dwell_time_nano_seconds+pow(10,9)/(2*max_clock)) 
             # Checks if the minimum conditions are reached
             if clock_frequency > max_sampling_rate:
-                raise ValueError(f"The selected dwell time does not allow for {number_of_clock_cycles} clock cycles with a max sample rate of {max_sampling_rate}")
+                raise ValueError(f"The selected dwell time does not allow for {self.number_of_clock_cycles} clock cycles with a max sample rate of {max_sampling_rate}")
 
             # The sample clock is how we measure time it runs the task for the number of clock cycles desired at the clock frequency to get the measured time 
             samp_clk_task.timing.cfg_samp_clk_timing(clock_frequency,
@@ -92,7 +96,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
                                                 source=f"/{self.device_name}/di/SampleClock",
                                                 active_edge=Edge.RISING,
                                                 sample_mode=AcquisitionType.FINITE,
-                                                samps_per_chan=number_of_clock_cycles)
+                                                samps_per_chan=self.number_of_clock_cycles)
             
             # We want to take the number of counts at the rising edge of the clock 
             read_task.triggers.arm_start_trigger.trig_type = TriggerType.DIGITAL_EDGE
@@ -107,7 +111,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
             read_task.start()
         
             # Getting the amount of counts for all cycles 
-            edge_counts = read_task.read(READ_ALL_AVAILABLE,timeout=timeout_waiting_for_data_seconds)
+            edge_counts = read_task.read(READ_ALL_AVAILABLE,timeout=self.timeout_waiting_for_data_seconds)
 
             read_task.stop()
             samp_clk_task.stop()
@@ -115,7 +119,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
             # Returning the final number of counts 
             return int(edge_counts[-1])
     
-    def get_counts_per_second(self,dwell_time_nano_seconds:int,number_of_clock_cycles:int = 2,timeout_waiting_for_data_seconds:float = 60) -> int:
+    def get_counts_per_second(self,dwell_time_nano_seconds:int) -> int:
         """get_counts_per_second nominally you can call it simply with 
         
             counts_per_second = photon_counter.get_counts_per_second(dwell_time_nano_seconds)
@@ -126,8 +130,6 @@ class NationalInstrumentsPhotonCounterDaqControlled:
 
         Args:
             dwell_time (int): This is the amount of time in nano seconds that we plan to collect photons 
-            number_of_clock_cycles (int, optional): This is the number of clock cycles when sampling data. Defaults to 10.
-            timeout_waiting_for_data (float, optional): This is how long the daq will wait for a trigger in this case the trigger is internal and will be activated once loaded. Defaults to 60.
 
         Raises:
             ValueError: The if the number of clock cycles can not be achieved with the max sampling rate an error is raised 
@@ -136,11 +138,11 @@ class NationalInstrumentsPhotonCounterDaqControlled:
             int: the number of counts that the photon counter has output 
         """
 
-        edge_counts = self.get_counts_raw(dwell_time_nano_seconds=dwell_time_nano_seconds,number_of_clock_cycles=number_of_clock_cycles,timeout_waiting_for_data_seconds=timeout_waiting_for_data_seconds)
+        edge_counts = self.get_counts_raw(dwell_time_nano_seconds=dwell_time_nano_seconds)
 
         return int(edge_counts*pow(10,9)/dwell_time_nano_seconds) # Returns the counts in seconds with the number multiplied to account for nanoseconds 
     
-    def get_counts_raw_when_triggered(self,dwell_time_nano_seconds, number_of_data_taking_cycles:int=1, number_of_clock_cycles:int=2, timeout_waiting_for_data_seconds:int=60)-> NDArray[np.int64]:
+    def get_counts_raw_when_triggered(self,dwell_time_nano_seconds:int, number_of_data_taking_cycles:int)-> NDArray[np.int64]:
         """get_counts_raw nominally you can call it simply with 
         
             raw_counts = photon_counter.get_counts_raw(dwell_time_nano_seconds)
@@ -149,8 +151,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
 
         Args:
             dwell_time (int): This is the amount of time in nano seconds that we plan to collect photons 
-            number_of_clock_cycles (int, optional): This is the number of clock cycles when sampling data. Defaults to 10.
-            timeout_waiting_for_data (float, optional): This is how long the daq will wait for a trigger in this case the trigger is internal and will be activated once loaded. Defaults to 60.
+            number_of_data_taking_cycles (int): This is the number of cycles when where samples will be taken and is how long the list will be 
 
         Raises:
             ValueError: The if the number of clock cycles can not be achieved with the max sampling rate an error is raised 
@@ -173,9 +174,9 @@ class NationalInstrumentsPhotonCounterDaqControlled:
             max_sampling_rate = samp_clk_task.timing.samp_clk_max_rate
             # finding a clock frequency multiplied the number of cycles to convert to seconds the natural time in the daq
             # The dwell time is modified by adding on cycle of clock time this is to account for a starting count and amounts to the fence post error
-            clock_frequency = number_of_clock_cycles*pow(10,9)/(dwell_time_nano_seconds+pow(10,9)/(2*max_clock))             # Checks if the minimum conditions are reached
+            clock_frequency = self.number_of_clock_cycles*pow(10,9)/(dwell_time_nano_seconds+pow(10,9)/(2*max_clock))             # Checks if the minimum conditions are reached
             if clock_frequency > max_sampling_rate:
-                raise ValueError(f"The selected dwell time does not allow for {number_of_clock_cycles} with a max sample rate of {max_sampling_rate}")
+                raise ValueError(f"The selected dwell time does not allow for {self.number_of_clock_cycles} with a max sample rate of {max_sampling_rate}")
 
             # The sample clock is how we measure time it runs the task for the number of clock cycles desired at the clock frequency to get the measured time 
             samp_clk_task.timing.cfg_samp_clk_timing(clock_frequency,
@@ -196,7 +197,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
                                                 source=f"/{self.device_name}/di/SampleClock",
                                                 active_edge=Edge.RISING,
                                                 sample_mode=AcquisitionType.FINITE,
-                                                samps_per_chan=number_of_clock_cycles)
+                                                samps_per_chan=self.number_of_clock_cycles)
             
             # We want to take the number of counts at the rising edge of the clock 
             read_task.triggers.arm_start_trigger.trig_type = TriggerType.DIGITAL_EDGE
@@ -216,7 +217,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
                 read_task.start()
             
                 # Getting the amount of counts for all cycles 
-                edge_counts = read_task.read(READ_ALL_AVAILABLE,timeout=timeout_waiting_for_data_seconds)
+                edge_counts = read_task.read(READ_ALL_AVAILABLE,timeout=self.timeout_waiting_for_data_seconds)
                 read_task.stop()
                 # Adding the counts to the array
                 counts_array[index] = int(edge_counts[-1])
@@ -227,7 +228,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
             return counts_array[1:]
             
 
-    def get_counts_per_second_when_triggered(self,dwell_time_nano_seconds, number_of_data_taking_cycles:int=1, number_of_clock_cycles:int=2, timeout_waiting_for_data_seconds:int=60)-> NDArray[np.int64]:
+    def get_counts_per_second_when_triggered(self,dwell_time_nano_seconds:int, number_of_data_taking_cycles:int)-> NDArray[np.int64]:
         """get_counts_per_second_when_triggered nominally you can call it simply with 
         
             raw_counts = photon_counter.get_counts_raw(dwell_time_nano_seconds)
@@ -236,8 +237,7 @@ class NationalInstrumentsPhotonCounterDaqControlled:
 
         Args:
             dwell_time (int): This is the amount of time in nano seconds that we plan to collect photons 
-            number_of_clock_cycles (int, optional): This is the number of clock cycles when sampling data. Defaults to 10.
-            timeout_waiting_for_data (float, optional): This is how long the daq will wait for a trigger in this case the trigger is internal and will be activated once loaded. Defaults to 60.
+            number_of_data_taking_cycles (int): This is the number of cycles when where samples will be taken and is how long the list will be 
 
         Raises:
             ValueError: The if the number of clock cycles can not be achieved with the max sampling rate an error is raised 
@@ -245,6 +245,6 @@ class NationalInstrumentsPhotonCounterDaqControlled:
         Returns:
             int: the raw number of counts that the photon counter has output 
         """
-        edge_counts = self.get_counts_raw_when_triggered(dwell_time_nano_seconds, number_of_data_taking_cycles, number_of_clock_cycles, timeout_waiting_for_data_seconds)
+        edge_counts = self.get_counts_raw_when_triggered(dwell_time_nano_seconds, number_of_data_taking_cycles)
 
         return np.round(edge_counts*pow(10,9)/dwell_time_nano_seconds)
