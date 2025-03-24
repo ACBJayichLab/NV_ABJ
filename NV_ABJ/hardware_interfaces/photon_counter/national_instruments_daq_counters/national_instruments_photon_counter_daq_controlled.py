@@ -1,4 +1,5 @@
 # Numpy is used for array allocation and fast math operations here
+import nidaqmx.constants
 import numpy as np
 # Used in type hints
 from numpy.typing import NDArray
@@ -148,18 +149,20 @@ class NationalInstrumentsPhotonCounterDaqControlled(PhotonCounter):
             # Creating a digital channel that will set the sampling speed for the taken data
             # This is the task that determines how long we sample for so if we have a rate of 100 Hz and take 10 samples
             # The time spent collect photons is 0.1 seconds 
-            max_clock = nidaqmx.system.device.Device(config.device_name).ci_max_timebase
             samp_clk_task.di_channels.add_di_chan(f"{config.device_name}/{config.port}")
             
 
             # The clock speed does not determine how fast we can count the click it determines how often we check with the daq how many counts have been gotten 
             # Configuring sampling rate and time we need to know our devices max rate to determine if the dwell time is too short 
+            max_clock = nidaqmx.system.device.Device(config.device_name).ci_max_timebase
             max_sampling_rate = samp_clk_task.timing.samp_clk_max_rate
+
             # finding a clock frequency multiplied the number of cycles to convert to seconds the natural time in the daq
             # The dwell time is modified by adding on cycle of clock time this is to account for a starting count and amounts to the fence post error
-            clock_frequency = config.number_of_clock_cycles/(dwell_time_s+1/(max_clock))             # Checks if the minimum conditions are reached
+            clock_frequency = config.number_of_clock_cycles/(dwell_time_s+1/(2*max_clock)) 
+            # Checks if the minimum conditions are reached
             if clock_frequency > max_sampling_rate:
-                raise ValueError(f"The selected dwell time does not allow for {config.number_of_clock_cycles} with a max sample rate of {max_sampling_rate}")
+                raise ValueError(f"The selected dwell time does not allow for {config.number_of_clock_cycles} clock cycles with a max sample rate of {max_sampling_rate}")
 
             # The sample clock is how we measure time it runs the task for the number of clock cycles desired at the clock frequency to get the measured time 
             samp_clk_task.timing.cfg_samp_clk_timing(clock_frequency,
@@ -181,36 +184,31 @@ class NationalInstrumentsPhotonCounterDaqControlled(PhotonCounter):
                                                 active_edge=Edge.RISING,
                                                 sample_mode=AcquisitionType.FINITE,
                                                 samps_per_chan=config.number_of_clock_cycles)
-                       
+            
             # We want to take the number of counts at the rising edge of the clock 
             read_task.triggers.arm_start_trigger.trig_type = TriggerType.DIGITAL_EDGE
             read_task.triggers.arm_start_trigger.dig_edge_edge = Edge.RISING
-            read_task.triggers.arm_start_trigger.dig_edge_src = f"/{config.device_name}/di/SampleClock"
-            
-            # read_task.triggers.start_trigger.trig_type = TriggerType.DIGITAL_EDGE
-            # read_task.triggers.start_trigger.dig_edge_edge = Edge.RISING
-            samp_clk_task.triggers.arm_start_trigger.cfg_dig_edge_start_trig = f"{config.trigger_pfi}"
+            read_task.triggers.arm_start_trigger.dig_edge_src = f"/{config.device_name}/{config.trigger_pfi}"
 
             # Setting the default amount of counts to 0 
             edge_counts = 0
-            
-            # There is one "throw away" cycle due to the fact that we need to initially synchronize the clocks 
-            counts_array = np.zeros(number_of_data_taking_cycles+1)
+            counts = np.zeros(number_of_data_taking_cycles)
 
-            # Starting the timing task and the reading tasks
-            for index,v in enumerate(counts_array):
-                samp_clk_task.start()            
+            for index,v in enumerate(counts):
+                # Starting the timing task and the reading tasks
+                samp_clk_task.start()
                 read_task.start()
-                            
                 # Getting the amount of counts for all cycles 
-                edge_counts = read_task.read(READ_ALL_AVAILABLE,timeout=config.timeout_waiting_for_data_s)
+                edge_counts = read_task.read(READ_ALL_AVAILABLE,timeout=config.timeout_waiting_for_data_s)  
+
+                print(edge_counts)
+
                 read_task.stop()
                 samp_clk_task.stop()
+                counts[index] = int(edge_counts[-1])
 
-                # Adding the counts to the array
-                counts_array[index] = int(edge_counts[-1])
             # Returning the final number of counts 
-            return counts_array[1:]
+            return counts
             
     
     # This is handled by the daq
