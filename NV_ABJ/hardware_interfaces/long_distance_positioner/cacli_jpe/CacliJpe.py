@@ -1,20 +1,36 @@
 """
 This is a class that is based on interactions with the provided Cacli.exe file from JPE in order to use this you must add the location of the Cacli.exe
-folder to the system enviroment variables for example if you saved it to "C:" you would add "C:" to the system variables path
+folder to the system environment variables for example if you saved it to "C:" you would add "C:" to the system variables path
 """
-import json
 import subprocess
-import os
+from dataclasses import dataclass
 
-class CacliJpe:
+from NV_ABJ import LongDistancePositionerSingleAxis
 
-    def __init__(self,piezo_driver_target,piezo_address,piezo_stage):
-        self.piezo_driver_target = piezo_driver_target
-        self.piezo_address = piezo_address
-        self.piezo_stage = piezo_stage
+@dataclass
+class ConfigurationCacliJpe:
+    piezo_driver_target:str 
+    piezo_address:int
+    piezo_stage:str
+    temperature_kelvin:int
+    frequency_hz:int
+    relative_step_size_percent:float
+    tqfr_percent:float
 
+
+class CacliJpe(LongDistancePositionerSingleAxis):
+
+    def __init__(self,device_configuration:ConfigurationCacliJpe):
+        self._device_configuration_class = device_configuration
+        
+    #########################################################################################################################################################################    
+    # Implementation of the abstract signal generator functions 
+    #########################################################################################################################################################################    
+    @property
+    def device_configuration_class(self):
+        return self._device_configuration_class
     
-    def move(self,temperature,direction, frequency,relative_step_size, steps, trqfr):
+    def move_positioner(self,direction,steps):
         """
         The move command starts moving an actuator with specified parameters. If an RSM or OEM2 is
         installed, the actuator position will be tracked automatically if the actuator is fitted with a Resistive
@@ -28,25 +44,27 @@ class CacliJpe:
 
         Response (example) Actuating the stage.
         """
+        piezo_driver_target = self._device_configuration_class.piezo_driver_target
+        piezo_address = self._device_configuration_class.piezo_address
+        piezo_stage = self._device_configuration_class.piezo_stage
+        temperature_kelvin = self._device_configuration_class.temperature_kelvin
+        frequency_hz = self._device_configuration_class.frequency_hz
+        relative_step_size = self._device_configuration_class.relative_step_size_percent
+        trqfr = self._device_configuration_class.tqfr_percent
 
-        # call command
-        #command =  ["cacli", str("@"+self.piezo_driver_target),"MOV", self.piezo_address,self.piezo_stage, temperature,direction,frequency,relative_step_size,steps,trqfr]
-        #response = subprocess.check_output(command)
-
-        command = f"cacli @{self.piezo_driver_target} MOV {self.piezo_address} {self.piezo_stage} {temperature} {direction} {frequency} {relative_step_size} {steps} {trqfr}"
+        command = f"cacli @{piezo_driver_target} MOV {piezo_address} {piezo_stage} {temperature_kelvin} {direction} {frequency_hz} {relative_step_size} {steps} {trqfr}"
         response = subprocess.call(command)
-        
 
         return response
 
-    def stop(self,normal_output=True):
+    def stop_positioner(self,normal_output=True):
         """
-        Emergancy stop all piezos in motion
+        Emergency stop all piezos in motion
         """
-        # command = ["cacli","STP",self.piezo_address]
-        # response = subprocess.check_output(command)
+        piezo_driver_target = self._device_configuration_class.piezo_driver_target
+        piezo_address = self._device_configuration_class.piezo_address
 
-        command = f"cacli @{self.piezo_driver_target} STP {self.piezo_address}"
+        command = f"cacli @{piezo_driver_target} STP {piezo_address}"
 
         if normal_output:
             response = subprocess.call(command)
@@ -58,8 +76,17 @@ class CacliJpe:
             return None
 
         
+    # For a connected device there isn't much to check with a third party controlled device 
+    def make_connection(self):
+        if not self.check_cacli_connection():
+            raise Exception("Failed to connect to device")
+    def close_connection(self):
+        pass
+    
 
-
+    #########################################################################################################################################################################    
+    # Cascading commands 
+    #########################################################################################################################################################################    
     def check_cacli_connection(self):
         
         # call command
@@ -84,49 +111,18 @@ class CacliJpe:
             
         return ids, target_connected
 
+    def set_frequency_hz(self, frequency_hz):
+        self._device_configuration_class.frequency_hz(frequency_hz)
+    
+    def set_relative_step_size(self, relative_step_size):
+        self._device_configuration_class.relative_step_size_percent(relative_step_size)
+    
+    def set_temperature_kelvin(self, temperature_kelvin):
+        self._device_configuration_class.temperature_kelvin(temperature_kelvin)
+    
+    def set_tqfr(self, tqfr):
+        self._device_configuration_class.tqfr_percent(tqfr)
+
     def __repr__(self):
         return f"Target Id: {self.piezo_driver_target}\nAddress: {self.piezo_address}\nStage: {self.piezo_stage}"
-
-    @classmethod
-    def import_config_file(cls,file_path):
-        with open(file_path,'r') as file:
-            data = json.load(file)
-        
-        piezo_driver_target = data["target"]
-        piezo_driver_target_type = data["target_type"]
-        piezo_address = data["address"]
-        piezo_stage = data["stage"]
-        return cls(piezo_driver_target,piezo_driver_target_type,piezo_address,piezo_stage)
-
-
-
-
-if __name__ == "__main__":
-
-    confirm_movement = input("About to move JPEs as a test make sure this is a safe procedure\nWould you like to continue[y/n]")
-    if confirm_movement == "y" or confirm_movement == "Y":
-        import time
-
-        print("Moving")
-        target_id = "1038E201905-14"
-        piezo_address = 3
-        piezo_stage = "CS021-RLS.Z"
-
-
-        InnerZ_JPE = JpeMovement(piezo_driver_target=target_id,piezo_address=piezo_address,piezo_stage=piezo_stage)
-
-        print(InnerZ_JPE.move(temperature="300",direction="0", frequency="200",relative_step_size="75", steps="1000", trqfr="1.0"))
-
-        time.sleep(.25)
-        InnerZ_JPE.stop()
-        time.sleep(1)
-        print(InnerZ_JPE.move(temperature="300",direction="1", frequency="200",relative_step_size="75", steps="1000", trqfr="1.0"))
-
-        time.sleep(.25)
-        InnerZ_JPE.stop(normal_output=False)
-        print(InnerZ_JPE)
-    
-        print(InnerZ_JPE.check_cacli_connection())
-    else:
-        print("Cancelling Movement")
 

@@ -2,9 +2,9 @@
 # Abstract Class Types
 ###################################################################################################################
 from NV_ABJ.abstract_device_interfaces.connected_device import ConnectedDevice
-from NV_ABJ.abstract_device_interfaces.signal_generator_interface import SignalGeneratorInterface, SignalGeneratorHardwareFormat
+from NV_ABJ.abstract_device_interfaces.signal_generator import SignalGeneratorInterface, SignalGeneratorHardwareFormat
 from NV_ABJ.abstract_device_interfaces.photon_counter import PhotonCounter
-from NV_ABJ.abstract_device_interfaces.long_distance_positioner import LongDistancePositioner
+from NV_ABJ.abstract_device_interfaces.long_distance_positioner import LongDistancePositionerSingleAxis,ThreeLongDistancePositioners
 
 ###################################################################################################################
 # User interfaces
