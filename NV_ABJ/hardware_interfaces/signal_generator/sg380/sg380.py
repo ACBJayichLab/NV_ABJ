@@ -1,8 +1,14 @@
 # importing third party modules 
 import pyvisa
 from dataclasses import dataclass
+from enum import Enum
 
-from NV_ABJ import SignalGeneratorHardwareFormat
+from NV_ABJ import SignalGenerator
+
+class ChannelsSG380(Enum):
+    n_type:bool = True
+    bnc:bool = False
+
 
 @dataclass
 class ConfigurationSG380:
@@ -20,7 +26,7 @@ class ConfigurationSG380:
     _rm = None
     _srs = None
 
-class SG380(SignalGeneratorHardwareFormat):
+class SG380(SignalGenerator):
     """This is a implementation for the Stanford Research Instruments signal generation 
     """
 
@@ -145,6 +151,7 @@ class SG380(SignalGeneratorHardwareFormat):
             and saving the list as a property to the class triggering you can just iterate through the list 
         """
         self.send_frequency_list(frequency_list)
+        self.trigger_list_item()
 
     def get_frequency_list_hz(self):
         """ Returns a list of the currently loaded frequencies 
