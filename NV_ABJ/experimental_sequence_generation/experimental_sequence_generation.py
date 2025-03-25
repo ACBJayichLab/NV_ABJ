@@ -62,38 +62,7 @@ class Sequence:
     def add_sub_sequence(self, sub_sequence:SequenceSubset):
         self.sequence_subsets.append(sub_sequence)
     
-    def convert_to_time_state_changes(self):
-        time_dict = {}
-        time = 0
-        print(time)
 
-        for sub_seq in self.sequence_subsets:
-            for looped in range(sub_seq.loop_steps+1):
-                for step in sub_seq.steps:
-                    
-                    if step["duration"] != None:
-                        time = time + step["duration"]
-                        print(time)
-
-                    if step["devices"] != None:
-                        current_devices = []
-                        for device in step["devices"]:
-                            if device.device_label in time_dict:
-                                time_dict[device.device_label]["times"].append(time)
-                            else:
-                                time_dict[device.device_label] = {}
-                                time_dict[device.device_label]["times"] = [time]
-                                time_dict[device.device_label]["device_class"] = device
-                            current_devices.append(device.device_label)
-                            
-                    else:
-                        for device in time_dict:
-                            print(device)
-                            time_dict[device]["times"].append(time)
-
-
-
-        return time_dict
 
     def __repr__(self):
         response = ""
@@ -108,28 +77,27 @@ if __name__ == "__main__":
     device_1 = SequenceDevice(address=0,device_label="device1")
     device_2 = SequenceDevice(address=1, device_label= "Device2")
 
-    # sub = SequenceSubset()
-    # sub.add_step(devices=[device_1,device_2],duration=11)
-    # sub.add_step(devices=[],duration=21)
-    # sub.loop_steps = 10
-    # print(sub)
+    sub = SequenceSubset()
+    sub.add_step(devices=[device_1,device_2],duration=11)
+    sub.add_step(devices=[],duration=21)
+    sub.loop_steps = 10
+    print(sub)
 
     seq = Sequence()
     seq.add_step(devices=[device_1,device_2],duration=10)
     seq.add_step(duration=10)
     seq.add_step(devices=[device_1],duration=3)
     seq.add_step(devices=[device_2],duration=5)
+    seq.add_step(devices=[device_1,device_2],duration=10)
+    seq.add_step(devices=[device_1,device_2],duration=10)
+
+    seq.add_step(devices=[device_1],duration=20)
+    seq.add_step(devices=[device_2],duration=35)
+    seq.add_sub_sequence(sub)
 
 
-    # seq.add_step(devices=[device_1],duration=20)
-    # seq.add_step(devices=[device_2],duration=35)
-    # seq.add_sub_sequence(sub)
+    print(seq)
 
-
-    # print(seq)
-    timing = seq.convert_to_time_state_changes()
-    print(timing["device1"]["times"])
-    print(timing["Device2"]["times"])
 
         
 

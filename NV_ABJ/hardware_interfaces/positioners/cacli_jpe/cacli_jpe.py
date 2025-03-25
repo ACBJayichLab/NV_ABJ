@@ -5,7 +5,7 @@ folder to the system environment variables for example if you saved it to "C:" y
 import subprocess
 from dataclasses import dataclass
 
-from NV_ABJ import LongDistancePositionerSingleAxis
+from NV_ABJ import PositionerSingleAxis
 
 @dataclass
 class ConfigurationCacliJpe:
@@ -18,7 +18,7 @@ class ConfigurationCacliJpe:
     tqfr_percent:float
 
 
-class CacliJpe(LongDistancePositionerSingleAxis):
+class CacliJpe(PositionerSingleAxis):
 
     def __init__(self,device_configuration:ConfigurationCacliJpe):
         self._device_configuration_class = device_configuration
