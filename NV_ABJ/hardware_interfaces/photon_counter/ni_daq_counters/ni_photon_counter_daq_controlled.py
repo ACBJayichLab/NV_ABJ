@@ -3,6 +3,7 @@ __all__ = ["NiPhotonCounterDaqControlledConfig","NiPhotonCounterDaqControlled"]
 # Numpy is used for array allocation and fast math operations here
 import numpy as np
 from numpy.typing import NDArray
+from dataclasses import dataclass
 
 # National instruments daq imports 
 import nidaqmx
@@ -11,7 +12,7 @@ from nidaqmx.constants import CountDirection, Edge, AcquisitionType, TaskMode,Tr
 # importing base class
 from NV_ABJ import PhotonCounter
 
-
+@dataclass
 class NiPhotonCounterDaqControlledConfig:
         """
         Args:
@@ -227,3 +228,19 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
     @property
     def device_configuration_class(self):
         return self._device_configuration
+
+if __name__ == "__main__":
+    from NV_ABJ import SG380Config,SG380
+
+    cfg_srs = SG380Config(gpib_address="GPIB0::27::INSTR")
+    cfg_pc = NiPhotonCounterDaqControlledConfig(device_name = "PXI1Slot4", counter_pfi="pfi0", trigger_pfi="pfi2")
+
+    dwell_time_s = 1000e-9
+
+    with SG380(cfg_srs) as srs:
+        srs.set_frequency_hz(20e6)
+        srs.turn_on_signal()
+        with NiPhotonCounterDaqControlled(cfg_pc) as photon_counter:
+            print(photon_counter.get_counts_raw(dwell_time_s))
+            print(photon_counter.get_counts_raw_when_triggered(dwell_time_s,5))
+        
