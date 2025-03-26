@@ -1,4 +1,5 @@
-from NV_ABJ import ScannerSingleAxis, PhotonCounter, SiLength
+__all__ = ["ConfocalScanningDisplay","ConfocalScanningControls"]
+from NV_ABJ import ScannerSingleAxis,PhotonCounter,meters
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
@@ -11,7 +12,7 @@ class ConfocalScanningDisplay:
     """A grouping of functions that are used to quickly plot outputs for the confocal images 
     """
     
-    def plot_image_scan(image_data,x_positions_m,y_positions_m,length_units:SiLength=SiLength.m,include_scale_bar=False,include_axis=True,bar_size:int = 10e-6):
+    def plot_image_scan(image_data,x_positions_m,y_positions_m,length_units:meters=meters.m,include_scale_bar=False,include_axis=True,bar_size:int = 10e-6):
         x_positions_m = x_positions_m/length_units.value
         y_positions_m = y_positions_m/length_units.value
         bar_size = bar_size

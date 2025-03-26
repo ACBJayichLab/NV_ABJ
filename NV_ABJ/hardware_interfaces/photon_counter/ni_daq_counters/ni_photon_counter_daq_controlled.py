@@ -1,7 +1,7 @@
+__all__ = ["NiPhotonCounterDaqControlledConfig","NiPhotonCounterDaqControlled"]
+
 # Numpy is used for array allocation and fast math operations here
-import nidaqmx.constants
 import numpy as np
-# Used in type hints
 from numpy.typing import NDArray
 
 # National instruments daq imports 
@@ -12,7 +12,7 @@ from nidaqmx.constants import CountDirection, Edge, AcquisitionType, TaskMode,Tr
 from NV_ABJ import PhotonCounter
 
 
-class NationalInstrumentsPhotonCounterDaqControlledConfiguration:
+class NiPhotonCounterDaqControlledConfig:
         """
         Args:
             device_name (str): name of the national instruments device for example "PXI1Slot4"
@@ -20,7 +20,7 @@ class NationalInstrumentsPhotonCounterDaqControlledConfiguration:
             trigger_pfi (str): This is used by the sequence synchronizer so that we can take data for a prescribed time this is usually "pfi#" implemented by using BNC into user# and on the terminal block connecting user# to pfi#
             ctr (str, optional): This is a counter used by the daq. If you have multiple counters running simultaneously on the same device you may need to change this to an available "ctr#". Defaults to "ctr0".
             port (str, optional): This is a digital internal port for counting cycles. If you have multiple counters running simultaneously on the same device you may need to change this to an available "port#". Defaults to "port0".
-            number_of_clock_cycles (int, optional): This is the number of clock cycles when sampling data. Defaults to 2.
+            number_of_clock_cycles (int, optional): This is the number of clock cycles when sampling data. We need at least two cycles. Defaults to 2.
             timeout_waiting_for_data (float, optional): This is how long the daq will wait for a trigger in this case the trigger is internal and will be activated once loaded. Defaults to 60.
 
         """
@@ -33,9 +33,9 @@ class NationalInstrumentsPhotonCounterDaqControlledConfiguration:
         number_of_clock_cycles:int = 2
         timeout_waiting_for_data_s:int = 60
 
-class NationalInstrumentsPhotonCounterDaqControlled(PhotonCounter):
+class NiPhotonCounterDaqControlled(PhotonCounter):
 
-    def __init__(self,device_configuration):
+    def __init__(self,device_configuration:NiPhotonCounterDaqControlledConfig):
         """This class is an implementation for a national instruments daq to count the number of photons that we are receiving during an experiment 
         It requires you to define the device name, counter, and the trigger. This works on the premise that the photon counter outputs a digital signal high every time a 
         photon is acquired such that this class can count the digital highs and return them as the photons received 
@@ -227,23 +227,3 @@ class NationalInstrumentsPhotonCounterDaqControlled(PhotonCounter):
     @property
     def device_configuration_class(self):
         return self._device_configuration
-    
-
-
-if __name__ == "__main__":
-    cfg  = NationalInstrumentsPhotonCounterDaqControlledConfiguration
-    cfg.device_name = "PXI1Slot4"
-    cfg.counter_pfi = "pfi0"
-    cfg.trigger_pfi = "pfi2"
-
-    counter = NationalInstrumentsPhotonCounterDaqControlled(cfg)
-
-    print(counter.get_counts_raw(5e-5))
-    import time 
-    start = time.perf_counter()
-    counts = counter.get_counts_raw_when_triggered(5e-5,200)
-
-    print(time.perf_counter()-start)
-
-    print(counts)
-    print(np.mean(counts))

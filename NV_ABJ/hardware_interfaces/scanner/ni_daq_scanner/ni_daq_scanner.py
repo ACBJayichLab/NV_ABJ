@@ -1,10 +1,12 @@
+__all__ = ["NiDaqSingleAxisScannerConfig","NiDaqSingleAxisScanner"]
 """
-This is a national instruments controlling class that also inclues class that are directly controlled by the DAQ
-These instruments include the SRS becuase it is triggered by the DAQ when a list is itterated,
-the NpPoint Z confocal piezo becuase the daq provides a voltage that it chases to set the z height,
-the attocube piezos becuase they relly on an input and ouput of the daq to be monitored and controlled ,
-the fast steering mirror because it is controlled in xy position by the daq, and the photodiode that collects the green power 
+This is a national instruments controlling class that also includes class that are directly controlled by the DAQ
+These instruments include the SRS because it is triggered by the DAQ when a list is iterated,
+the NpPoint Z confocal piezo because the daq provides a voltage that it chases to set the z height,
+the attocube piezos because they rely on an input and output of the daq to be monitored and controlled ,
+the fast steering mirror because it is controlled in xy position by the daq, and the photo diode that collects the green power 
 """
+
 import numpy as np # used to calculate means and normal error 
 import time # used for timing out the daq interactions
 from dataclasses import dataclass
@@ -15,7 +17,7 @@ import nidaqmx
 from NV_ABJ import ScannerSingleAxis
 
 @dataclass
-class NationalInstrumentsDaqSingleAxisScannerConfiguration:
+class NiDaqSingleAxisScannerConfig:
     """
     conversion_volts_per_meter:float = How many volts would it be to move the scanner one meter yes this is large but thats just for conversion to standard units 
 
@@ -51,15 +53,16 @@ class NationalInstrumentsDaqSingleAxisScannerConfiguration:
     voltage_sample_rate:int=1000
     samples_per_read:int=100
 
-    _position_m:float = None # Where the device is set to for tracking purposes only
 
+class NiDaqSingleAxisScanner(ScannerSingleAxis):
+    """This is a class to control a single axis scanner. A scanner consists of an item where we expect the same amount of movement for a command so if we 
+    apply one volt we can expect a certain amount of motion consistently. It uses at a minimum one output port to control the scanner but an input port can be configured 
+    """
 
-
-
-class NationalInstrumentsDaqSingleAxisScanner(ScannerSingleAxis):
-
-    def __init__(self,device_configuration:NationalInstrumentsDaqSingleAxisScannerConfiguration):
+    def __init__(self,device_configuration:NiDaqSingleAxisScannerConfig):
         self._device_configuration = device_configuration
+        self._position_m:float = None # Where the device is set to for tracking purposes only
+
 
     #########################################################################################################################################################################    
     # Implementation of the abstract single axis scanner class
@@ -72,7 +75,7 @@ class NationalInstrumentsDaqSingleAxisScanner(ScannerSingleAxis):
             self.wait_for_voltage(voltage)
         else:
             self.voltage_out(voltage)
-            self._device_configuration._position_m = position
+            self._position_m = position
         
     def get_position_m(self):
         if self._device_configuration.channel_name_input != None:
@@ -83,7 +86,7 @@ class NationalInstrumentsDaqSingleAxisScanner(ScannerSingleAxis):
                 return voltage/self._device_configuration.conversion_volts_per_meter_getting 
 
         else:
-            return self._device_configuration._position_m
+            return self._position_m
     
     # This is handled by the daq
     def make_connection(self):

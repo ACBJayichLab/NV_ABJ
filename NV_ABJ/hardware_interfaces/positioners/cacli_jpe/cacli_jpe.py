@@ -1,3 +1,4 @@
+_all_ = ["CacliJpeConfig","CacliJpe"]
 """
 This is a class that is based on interactions with the provided Cacli.exe file from JPE in order to use this you must add the location of the Cacli.exe
 folder to the system environment variables for example if you saved it to "C:" you would add "C:" to the system variables path
@@ -8,7 +9,7 @@ from dataclasses import dataclass
 from NV_ABJ import PositionerSingleAxis
 
 @dataclass
-class ConfigurationCacliJpe:
+class CacliJpeConfig:
     piezo_driver_target:str 
     piezo_address:int
     piezo_stage:str
@@ -20,7 +21,7 @@ class ConfigurationCacliJpe:
 
 class CacliJpe(PositionerSingleAxis):
 
-    def __init__(self,device_configuration:ConfigurationCacliJpe):
+    def __init__(self,device_configuration:CacliJpeConfig):
         self._device_configuration_class = device_configuration
         
     #########################################################################################################################################################################    
