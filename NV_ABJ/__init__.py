@@ -11,12 +11,6 @@ from NV_ABJ.abstract_device_interfaces.photon_counter import PhotonCounter
 from NV_ABJ.abstract_device_interfaces.positioner import PositionerSingleAxis
 from NV_ABJ.abstract_device_interfaces.scanner import ScannerSingleAxis
 
-###################################################################################################################
-# User interfaces
-###################################################################################################################
-from NV_ABJ.user_interfaces.hardware_user_interfaces.signal_generator_gui.signal_generator_gui import SignalGeneratorGui
-from NV_ABJ.user_interfaces.hardware_user_interfaces.photon_counter_gui.photon_counter_gui import PhotonCounterGui
-
 
 ###################################################################################################################
 # Hardware interfaces
@@ -49,4 +43,10 @@ from NV_ABJ.hardware_interfaces.scanner.ni_daq_scanner.ni_daq_scanner import *
 # Experimental Logic
 ###################################################################################################################
 from NV_ABJ.experimental_logic.confocal_scanning import *
+
+###################################################################################################################
+# User interfaces
+###################################################################################################################
+from NV_ABJ.user_interfaces.hardware_user_interfaces.signal_generator_gui.signal_generator_gui import SignalGeneratorGui
+from NV_ABJ.user_interfaces.hardware_user_interfaces.photon_counter_gui.photon_counter_gui import PhotonCounterGui
 
