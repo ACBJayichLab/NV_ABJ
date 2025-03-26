@@ -159,7 +159,8 @@ class NationalInstrumentsPhotonCounterDaqControlled(PhotonCounter):
 
             # finding a clock frequency multiplied the number of cycles to convert to seconds the natural time in the daq
             # The dwell time is modified by adding on cycle of clock time this is to account for a starting count and amounts to the fence post error
-            clock_frequency = config.number_of_clock_cycles/(dwell_time_s+1/(2*max_clock)) 
+            # Because it takes a whole clock cycle to start data it needs average out
+            clock_frequency = config.number_of_clock_cycles/(dwell_time_s+1/(max_clock)) 
             # Checks if the minimum conditions are reached
             if clock_frequency > max_sampling_rate:
                 raise ValueError(f"The selected dwell time does not allow for {config.number_of_clock_cycles} clock cycles with a max sample rate of {max_sampling_rate}")
@@ -167,6 +168,12 @@ class NationalInstrumentsPhotonCounterDaqControlled(PhotonCounter):
             # The sample clock is how we measure time it runs the task for the number of clock cycles desired at the clock frequency to get the measured time 
             samp_clk_task.timing.cfg_samp_clk_timing(clock_frequency,
                                                     sample_mode=AcquisitionType.CONTINUOUS)
+            
+            # Starts task when triggered by a TTL pulse
+            samp_clk_task.triggers.start_trigger.trig_type = TriggerType.DIGITAL_EDGE
+            samp_clk_task.triggers.start_trigger.dig_edge_edge = Edge.RISING
+            samp_clk_task.triggers.start_trigger.dig_edge_src = f"/{config.device_name}/{config.trigger_pfi}"
+
 
             # Saves task to device 
             samp_clk_task.control(TaskMode.TASK_COMMIT)
@@ -188,25 +195,24 @@ class NationalInstrumentsPhotonCounterDaqControlled(PhotonCounter):
             # We want to take the number of counts at the rising edge of the clock 
             read_task.triggers.arm_start_trigger.trig_type = TriggerType.DIGITAL_EDGE
             read_task.triggers.arm_start_trigger.dig_edge_edge = Edge.RISING
-            read_task.triggers.arm_start_trigger.dig_edge_src = f"/{config.device_name}/{config.trigger_pfi}"
+            read_task.triggers.arm_start_trigger.dig_edge_src = f"/{config.device_name}/di/SampleClock"
 
             # Setting the default amount of counts to 0 
-            edge_counts = 0
+            
             counts = np.zeros(number_of_data_taking_cycles)
-
+            # Starting the timing task and the reading tasks
+            edge_counts = 0
             for index,v in enumerate(counts):
-                # Starting the timing task and the reading tasks
                 samp_clk_task.start()
                 read_task.start()
+
                 # Getting the amount of counts for all cycles 
                 edge_counts = read_task.read(READ_ALL_AVAILABLE,timeout=config.timeout_waiting_for_data_s)  
-
-                print(edge_counts)
 
                 read_task.stop()
                 samp_clk_task.stop()
                 counts[index] = int(edge_counts[-1])
-
+            
             # Returning the final number of counts 
             return counts
             
@@ -232,8 +238,12 @@ if __name__ == "__main__":
 
     counter = NationalInstrumentsPhotonCounterDaqControlled(cfg)
 
-    print(counter.get_counts_raw(5e-6))
+    print(counter.get_counts_raw(5e-5))
     import time 
     start = time.perf_counter()
-    print(counter.get_counts_raw_when_triggered(5e-6,5))
+    counts = counter.get_counts_raw_when_triggered(5e-5,200)
+
     print(time.perf_counter()-start)
+
+    print(counts)
+    print(np.mean(counts))
