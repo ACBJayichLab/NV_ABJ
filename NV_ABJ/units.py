@@ -1,4 +1,4 @@
-__all__ = ["meters"]
+__all__ = ["meters","seconds","grams","hertz","volts","amps","kelvin","candela","watts","joules","mols","liters"]
 """This is a standard units file to enforce the use of valid units and to set an expected base unit for classes while not limiting the user
 """
 from enum import Enum
@@ -107,7 +107,7 @@ class kelvin(Enum):
     nK:float = 1e-9
     pK:float = 1e-12
 
-class candella(Enum):
+class candela(Enum):
     Tcd:float = 1e12
     Gcd:float  = 1e9
     Mcd:float = 1e6
