@@ -235,12 +235,16 @@ if __name__ == "__main__":
     cfg_srs = SG380Config(gpib_address="GPIB0::27::INSTR")
     cfg_pc = NiPhotonCounterDaqControlledConfig(device_name = "PXI1Slot4", counter_pfi="pfi0", trigger_pfi="pfi2")
 
-    dwell_time_s = 1000e-9
+    dwell_time_s_list = np.arange(200,1000,20)*1e-9
 
     with SG380(cfg_srs) as srs:
-        srs.set_frequency_hz(20e6)
+        srs.set_frequency_hz(10e6)
         srs.turn_on_signal()
         with NiPhotonCounterDaqControlled(cfg_pc) as photon_counter:
-            print(photon_counter.get_counts_raw(dwell_time_s))
-            print(photon_counter.get_counts_raw_when_triggered(dwell_time_s,5))
+            for dwell_time_s in dwell_time_s_list:
+                counts = 0
+                for i in range(100):
+                    counts = counts + photon_counter.get_counts_raw(dwell_time_s)
+                print(counts/100)
+                # print(photon_counter.get_counts_raw_when_triggered(dwell_time_s,5))
         
