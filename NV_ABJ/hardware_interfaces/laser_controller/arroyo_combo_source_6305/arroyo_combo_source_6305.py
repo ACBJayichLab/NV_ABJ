@@ -1,55 +1,20 @@
 import serial
-
-class ArroyoComboSource6305():
-
-    def __init__(self,controller_class):
-        self.controller_class = controller_class
-        
-    @classmethod
-    def make_controller(cls,hardware_id):
-
-        # Getting all connected devices
-        connected_ports = serial.Serial.tools.list_ports.comports()
-
-        # Finding the com port associated with a hardware id
-        for port, desc, hwid in sorted(connected_ports):
-            if hardware_id == hwid:
-                
-                controller_class = serial.Serial(port,
-                        baudrate=38400,
-                        timeout=2,
-                        bytesize=serial.EIGHTBITS,
-                        stopbits=serial.STOPBITS_ONE,
-                        parity=serial.PARITY_NONE,
-                        rtscts=False
-                        )
-                controller_class.quer
-                return cls(controller_class)
-
-    #######################################################################################################################################################
-    # Standard Commands 
-    #######################################################################################################################################################
-    def check_connection(self):
-        self.controller_class
-
-if __name__ == "__main__":
-    hardware_id = ""
-
-    # Getting all connected devices
-    connected_ports = serial.Serial.tools.list_ports.comports()
-
-    # Finding the com port associated with a hardware id
-    for port, desc, hwid in sorted(connected_ports):
-        if hardware_id == hwid:
-                    
-            controller_class = serial.Serial(port,
-                    baudrate=38400,
-                    timeout=2,
-                    bytesize=serial.EIGHTBITS,
-                    stopbits=serial.STOPBITS_ONE,
-                    parity=serial.PARITY_NONE,
-                    rtscts=False
-                    )
-            controller_class.write("*IDN?")
-            data = controller_class.read_all()
-            print(data)
+import time
+com_port = "COM8" 
+# Setting up and connecting to device
+try:
+    ser = serial.Serial(port =  com_port,
+                                baudrate = 38400,
+                                parity =   serial.PARITY_NONE,
+                                stopbits = serial.STOPBITS_ONE,
+                                bytesize = serial.EIGHTBITS,
+                                timeout =  0,
+                                write_timeout = 0)
+    ser.write(b'*IDN? \r\n')
+    time.sleep(0.1)
+    # Shows the model of Arroyo Instrument
+    print(bytes.decode(ser.read(256)))
+except:
+    pass
+finally:
+    ser.close()
