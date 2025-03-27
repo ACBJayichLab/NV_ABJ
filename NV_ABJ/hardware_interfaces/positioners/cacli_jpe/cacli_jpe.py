@@ -2,8 +2,10 @@ _all_ = ["CacliJpeConfig","CacliJpe","CacliVersion"]
 """
 This is a class that is based on interactions with the provided Cacli.exe file from JPE in order to use this you must add the location of the Cacli.exe
 folder to the system environment variables for example if you saved it to "C:" you would add "C:" to the system variables path
+
+This is also only programmed for use with USB at the moment. My LAN connection has never worked unfortunately so I could not program it for general cases
 """
-import subprocess
+from subprocess import Popen, PIPE
 import time
 from dataclasses import dataclass
 from enum import IntEnum
@@ -29,6 +31,9 @@ class CacliJpeConfig:
     relative_step_size_percent:float
     torque_factor:int
     cacli_version:CacliVersion = CacliVersion.v7 # There are slight differences between different commands 
+    time_out:int = 1
+    delay_between_attempts_s:int = 5
+    number_of_attempts:int = 5
 
 class CacliJpe(PositionerSingleAxis):
 
@@ -73,7 +78,7 @@ class CacliJpe(PositionerSingleAxis):
             case _:
                 raise NotImplemented(f"The cacli version {version.name} has not been implemented yet")
         
-        response = subprocess.call(command)
+        response = self.try_command(command)
 
         return response
 
@@ -87,45 +92,60 @@ class CacliJpe(PositionerSingleAxis):
         command = f"cacli @{piezo_driver_target} STP {piezo_address}"
 
         if normal_output:
-            response = subprocess.call(command)
+
+            response = self.try_command(command)
             return response
         else:
             #This is to mute the response for use with the GUI
-            subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
+            self.try_command(command)
             return None
 
         
     # For a connected device there isn't much to check with a third party controlled device 
     def make_connection(self):
         if not self.check_cacli_connection():
-            raise Exception("Failed to connect to device")
+            raise Exception("Failed to connect to specified device")
+        
     def close_connection(self):
         pass
     
 
     #########################################################################################################################################################################    
-    # Cascading commands 
+    # Base Commands 
     #########################################################################################################################################################################    
-    def check_cacli_connection(self, number_of_attempts_check = 5, delay_between_attempts_s = 3):
+    def try_command(self,command,retry_after_failure=False):
+        number_attempts = self._device_configuration_class.number_of_attempts
+        for n in range(number_attempts):
+            try:
+                p = Popen(command.split(" "), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+                output, err = p.communicate(b"input data that is passed to subprocess' stdin",timeout=self._device_configuration_class.time_out)
+                return output.decode("utf-8")
+            except:
+                if retry_after_failure:
+                    time.sleep(self._device_configuration_class.delay_between_attempts_s)
+                else:
+                    # There is a error with certain commands like MOV for newer CLI programs by JPE that means the command line may not receive an exit to new line 
+                    # This means that it will never time out because it maintains a open line so if we want to continue this must be timed out 
+                    # This is unfortunately not something we are likely able to fix 
+                    return -1
+                
+        raise Exception(f"Failed to execute {command} after {number_attempts} attempts")
+        
+    def check_cacli_connection(self):
         
         # call command
-        command =  ["cacli","/USB"]
-        for n in range(number_of_attempts_check):
-            try:
-                response = subprocess.check_output(command).decode("utf-8")
-                print(response)
-                
-                # check if controller id is connected 
-                if self._device_configuration_class.piezo_driver_target in response:
-                    target_connected = True
-                else:
-                    target_connected = False
-                    
-                return target_connected
-            except:
-                time.sleep(delay_between_attempts_s)
-        raise Exception(response)
+        command =  "cacli /USB"
+
+        response = self.try_command(command, retry_after_failure=True)
+        
+        # check if controller id is connected 
+        if self._device_configuration_class.piezo_driver_target in response:
+            target_connected = True
+        else:
+            target_connected = False
+            
+        return target_connected
+
 
     def set_frequency_hz(self, frequency_hz):
         self._device_configuration_class.frequency_hz = frequency_hz
