@@ -118,6 +118,7 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         
             # Getting the amount of counts for all cycles 
             edge_counts = read_task.read(READ_ALL_AVAILABLE,timeout=config.timeout_waiting_for_data_s)
+            read_task.wait_until_done()
 
             read_task.stop()
             samp_clk_task.stop()
@@ -209,7 +210,7 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
 
                 # Getting the amount of counts for all cycles 
                 edge_counts = read_task.read(READ_ALL_AVAILABLE,timeout=config.timeout_waiting_for_data_s)  
-
+                read_task.wait_until_done()
                 read_task.stop()
                 samp_clk_task.stop()
                 counts[index] = int(edge_counts[-1])
@@ -228,3 +229,5 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
     @property
     def device_configuration_class(self):
         return self._device_configuration
+
+
