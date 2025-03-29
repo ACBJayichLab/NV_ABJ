@@ -1,8 +1,7 @@
-__all__ = ["SG380Channels","SG380Config","SG380"]
+__all__ = ["SG380Channels","SG380"]
 
 # importing third party modules 
 import pyvisa
-from dataclasses import dataclass
 from enum import IntEnum
 
 from NV_ABJ import SignalGenerator
@@ -12,23 +11,19 @@ class SG380Channels(IntEnum):
     bnc:int = 1
 
 
-@dataclass
-class SG380Config:
+class SG380(SignalGenerator):
     """This is where the constraints for connecting to the correct signal generator are stored such as the address and if we want to use the n_type_port
 
     Args:
         gpib_address: str = The address that you connect to the srs with
         channel: SG380Channels  =  You can choose either n_type (int 0) or bnc (int 1)
     """
-    gpib_address: str
-    channel: SG380Channels = SG380Channels.n_type
 
-class SG380(SignalGenerator):
-    """This is a implementation for the Stanford Research Instruments signal generation 
-    """
-
-    def __init__(self,device_configuration:SG380Config):
-        self._device_configuration = device_configuration
+    def __init__(self,gpib_address: str,channel: SG380Channels = SG380Channels.n_type):
+        self.gpib_address = gpib_address
+        self.channel = channel
+        
+        # These are made by the make connection class
         self._frequency_range_hz: tuple = None
         self._power_range_dbm:tuple = None
         self._rm = None
@@ -37,13 +32,13 @@ class SG380(SignalGenerator):
 
     @property
     def device_configuration_class(self):
-        return self._device_configuration
+        return self.gpib_address, self.channel
 
     def make_connection(self):
         
         # Takes a daq card id, daq channel, and a gpib id and returns a class to control the srs
         _rm = pyvisa.ResourceManager()
-        _srs = _rm.open_resource(self._device_configuration.gpib_address)
+        _srs = _rm.open_resource(self.gpib_address)
 
         # Clear status
         _srs.write("*CLS")
@@ -51,7 +46,7 @@ class SG380(SignalGenerator):
         # Check model number from ID 
         response = str(_srs.query("*IDN?"))
 
-        if self._device_configuration.channel:
+        if self.channel:
             if "SG382" in response:
                     freq_range = (950*pow(10,3),2.025*pow(10,9))
                     power_range = (-110,13)
@@ -62,14 +57,14 @@ class SG380(SignalGenerator):
                     freq_range = (950*pow(10,3),6.075*pow(10,9))
                     power_range = (-110,13)
             else:
-                raise Exception(f"The model of SRS SG380 is not recognized at {self._device_configuration.gpib_address}")
+                raise Exception(f"The model of SRS SG380 is not recognized at {self.gpib_address}")
         else:
             if "SG382" in response or "SG384" in response or "SG386" in response:
                 # This assumes that the BNC port will be in use 
                 freq_range = (0,62.5*pow(10,6))
                 power_range = (-47,13)
             else:
-                raise Exception(f"The model of SRS SG380 is not recognized at {self._device_configuration.gpib_address}")
+                raise Exception(f"The model of SRS SG380 is not recognized at {self.gpib_address}")
         
         # adding relevant parameters to device configuration
         self._srs = _srs
@@ -112,7 +107,7 @@ class SG380(SignalGenerator):
     def set_power_dbm(self,amplitude:float):
         """Sets the signal power in dBm 
         """
-        match self._device_configuration.channel:
+        match self.channel:
             case SG380Channels.n_type:
                 self.change_amplitude_n_type(amplitude)
             case SG380Channels.bnc:
@@ -121,7 +116,7 @@ class SG380(SignalGenerator):
     def get_power_dbm(self)->float:
         """Sets the signal power in dBm 
         """
-        match self._device_configuration.channel:
+        match self.channel:
             case SG380Channels.n_type:
                 return float(self.get_n_type_amplitude())
             case SG380Channels.bnc:
@@ -131,7 +126,7 @@ class SG380(SignalGenerator):
         """Turns on the signal source this will map to the specific port in question
           and does not turn on the device just the signal
         """
-        match self._device_configuration.channel:
+        match self.channel:
             case SG380Channels.n_type:
                self.n_type_on()
             case SG380Channels.bnc:
@@ -141,7 +136,7 @@ class SG380(SignalGenerator):
     def turn_off_signal(self):
         """This turns off the signal source and will not turn off the device 
         """
-        match self._device_configuration.channel:
+        match self.channel:
             case SG380Channels.n_type:
                self.n_type_off()
             case SG380Channels.bnc:
