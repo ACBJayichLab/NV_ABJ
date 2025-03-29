@@ -171,6 +171,8 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
     def make_connection(self):
         """ Makes a connection to the task. This would normally be handled by the daq but it's been unwrapped here for time on repeated operations
         """
+
+        # Creating tasks to run
         self.read_task = nidaqmx.Task() 
         self.samp_clk_task =  nidaqmx.Task()
         # Creating a digital channel that will set the sampling speed for the taken data
@@ -226,30 +228,3 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
     @property
     def device_configuration_class(self):
         return self.device_name, self.counter_pfi, self.trigger_pfi, self.ctr, self.port, self.timeout_waiting_for_data_s
-
-
-if __name__ == "__main__":
-    system = nidaqmx.system.System.local()
-    for device in system.devices:
-        print(f"Device: {device.name}")
-        for terminal in device.terminals:
-            if "HzTimebase" in terminal:
-                try:
-                    timebase = int(terminal.replace(device.name).replace("/").repacle("HzTimebase","").replace("k","e3").replace("M","e6").replace("G","e9"))
-                    print(timebase)
-                except:
-                    pass
-                print(f"  - {terminal}")
-
-    photon_counter_1 = NiPhotonCounterDaqControlled(device_name="PXI1Slot3",
-                                                   counter_pfi="pfi0",
-                                                   trigger_pfi="pfi1")
-    with photon_counter_1 as pc1:
-        print(pc1.get_counts_raw_when_triggered(5e-3,2))
-        print(pc1.get_counts_per_second(5e-3))
-
-        print(pc1.get_counts_raw_when_triggered(5e-3,2))
-        print(pc1.get_counts_per_second(5e-3))
-
-        print(pc1.get_counts_raw_when_triggered(5e-3,2))
-        print(pc1.get_counts_per_second(5e-3))
