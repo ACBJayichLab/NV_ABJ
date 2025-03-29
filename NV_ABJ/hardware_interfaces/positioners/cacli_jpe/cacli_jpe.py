@@ -31,7 +31,7 @@ class CacliJpeConfig:
     relative_step_size_percent:float
     torque_factor:int
     cacli_version:CacliVersion = CacliVersion.v7 # There are slight differences between different commands 
-    time_out:int = 1
+    time_out:float = 0.1
     delay_between_attempts_s:int = 5
     number_of_attempts:int = 5
 
@@ -166,14 +166,32 @@ class CacliJpe(PositionerSingleAxis):
 if __name__ == "__main__":
     target_id = '1038E201905-12'
 
-    cfg = CacliJpeConfig(piezo_driver_target=target_id,
-                         piezo_address=1,
-                         piezo_stage="CS021.Z",
+    cfg_x = CacliJpeConfig(piezo_driver_target=target_id,
+                         piezo_address=4,
+                         piezo_stage="CS021-RLS.X",
                          temperature_kelvin=300,
                          frequency_hz=250,
                          relative_step_size_percent=100,
                          torque_factor=1)
     
-    with CacliJpe(cfg) as jpe:
-        print(jpe.check_cacli_connection())
-        print(jpe.move_positioner(True,50))
+    cfg_y = CacliJpeConfig(piezo_driver_target=target_id,
+                         piezo_address=5,
+                         piezo_stage="CS021-RLS.Y",
+                         temperature_kelvin=300,
+                         frequency_hz=250,
+                         relative_step_size_percent=100,
+                         torque_factor=1)
+    
+    cfg_z = CacliJpeConfig(piezo_driver_target=target_id,
+                         piezo_address=6,
+                         piezo_stage="CS021-RLS.Z",
+                         temperature_kelvin=300,
+                         frequency_hz=250,
+                         relative_step_size_percent=100,
+                         torque_factor=1)
+    
+    with CacliJpe(cfg_y) as jpe:
+        
+        # print(jpe.check_cacli_connection())
+        jpe.move_positioner(1,10)
+        # jpe.stop_positioner()
