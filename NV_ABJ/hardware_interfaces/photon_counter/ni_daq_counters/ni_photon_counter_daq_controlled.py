@@ -38,6 +38,8 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         self.number_of_clock_cycles = number_of_clock_cycles
         self.timeout_waiting_for_data_s = timeout_waiting_for_data_s
 
+
+
     def get_counts_raw(self,dwell_time_s:float) -> int:
         """get_counts_raw nominally you can call it simply with 
         
@@ -54,21 +56,20 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         Returns:
             int: the raw number of counts that the photon counter has output 
         """
-        # The clock speed does not determine how fast we can count the click it determines how often we check with the daq how many counts have been gotten 
-        # Configuring sampling rate and time we need to know our devices max rate to determine if the dwell time is too short 
-        max_clock = nidaqmx.system.device.Device(self.device_name).ci_max_timebase
-        max_sampling_rate = self.samp_clk_task.timing.samp_clk_max_rate
+ 
 
         # finding a clock frequency multiplied the number of cycles to convert to seconds the natural time in the daq
         # The dwell time is modified by adding on cycle of clock time this is to account for a starting count and amounts to the fence post error
-        clock_frequency = self.number_of_clock_cycles/(dwell_time_s+1/(2*max_clock)) 
+        clock_frequency = self.number_of_clock_cycles/(dwell_time_s+1/(2*self.max_clock)) 
         # Checks if the minimum conditions are reached
-        if clock_frequency > max_sampling_rate:
-            raise ValueError(f"The selected dwell time does not allow for {self.number_of_clock_cycles} clock cycles with a max sample rate of {max_sampling_rate}")
+        if clock_frequency > self.max_sampling_rate:
+            raise ValueError(f"The selected dwell time does not allow for {self.number_of_clock_cycles} clock cycles with a max sample rate of {self.max_sampling_rate}")
 
         # The sample clock is how we measure time it runs the task for the number of clock cycles desired at the clock frequency to get the measured time 
         self.samp_clk_task.timing.cfg_samp_clk_timing(clock_frequency,
                                                 sample_mode=AcquisitionType.CONTINUOUS)
+
+        self.samp_clk_task.triggers.start_trigger.dig_edge_src = f"/{self.device_name}/{self.timebase}"
 
         # Saves task to device 
         self.samp_clk_task.control(TaskMode.TASK_COMMIT)
@@ -119,46 +120,25 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         Returns:
             int: the raw number of counts that the photon counter has output 
         """
-
-        # Creating a digital channel that will set the sampling speed for the taken data
-        # This is the task that determines how long we sample for so if we have a rate of 100 Hz and take 10 samples
-        # The time spent collect photons is 0.1 seconds 
-        self.samp_clk_task.di_channels.add_di_chan(f"{self.device_name}/{self.port}")
-        
-
-        # The clock speed does not determine how fast we can count the click it determines how often we check with the daq how many counts have been gotten 
-        # Configuring sampling rate and time we need to know our devices max rate to determine if the dwell time is too short 
-        max_clock = nidaqmx.system.device.Device(self.device_name).ci_max_timebase
-        max_sampling_rate = self.samp_clk_task.timing.samp_clk_max_rate
-
         # finding a clock frequency multiplied the number of cycles to convert to seconds the natural time in the daq
         # The dwell time is modified by adding on cycle of clock time this is to account for a starting count and amounts to the fence post error
         # Because it takes a whole clock cycle to start data it needs average out
-        clock_frequency = self.number_of_clock_cycles/(dwell_time_s+1/(max_clock)) 
+        clock_frequency = self.number_of_clock_cycles/(dwell_time_s+1/(self.max_clock)) 
         # Checks if the minimum conditions are reached
-        if clock_frequency > max_sampling_rate:
-            raise ValueError(f"The selected dwell time does not allow for {self.number_of_clock_cycles} clock cycles with a max sample rate of {max_sampling_rate}")
+        if clock_frequency > self.max_sampling_rate:
+            raise ValueError(f"The selected dwell time does not allow for {self.number_of_clock_cycles} clock cycles with a max sample rate of {self.max_sampling_rate}")
 
         # The sample clock is how we measure time it runs the task for the number of clock cycles desired at the clock frequency to get the measured time 
         self.samp_clk_task.timing.cfg_samp_clk_timing(clock_frequency,
                                                 sample_mode=AcquisitionType.CONTINUOUS)
         
         # Starts task when triggered by a TTL pulse
-        self.samp_clk_task.triggers.start_trigger.trig_type = TriggerType.DIGITAL_EDGE
-        self.samp_clk_task.triggers.start_trigger.dig_edge_edge = Edge.RISING
         self.samp_clk_task.triggers.start_trigger.dig_edge_src = f"/{self.device_name}/{self.trigger_pfi}"
-
-
         # Saves task to device 
         self.samp_clk_task.control(TaskMode.TASK_COMMIT)
 
-        # This is connecting a counter to the reading data task 
-        self.read_task.ci_channels.add_ci_count_edges_chan(f"{self.device_name}/{self.ctr}",
-                                                    edge=Edge.RISING,
-                                                    initial_count=0,
-                                                    count_direction=CountDirection.COUNT_UP)
         # We want to count the edges at the pfi provided 
-        self.read_task.ci_channels.all.ci_count_edges_term = f"/{self.device_name}/{self.counter_pfi}"
+        # self.read_task.ci_channels.all.ci_count_edges_term = f"/{self.device_name}/{self.counter_pfi}"
         # We are taking data for this amount of time based on a digital internal clock set to the clock frequency 
         self.read_task.timing.cfg_samp_clk_timing(clock_frequency,
                                             source=f"/{self.device_name}/di/SampleClock",
@@ -166,13 +146,8 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
                                             sample_mode=AcquisitionType.FINITE,
                                             samps_per_chan=self.number_of_clock_cycles)
         
-        # We want to take the number of counts at the rising edge of the clock 
-        self.read_task.triggers.arm_start_trigger.trig_type = TriggerType.DIGITAL_EDGE
-        self.read_task.triggers.arm_start_trigger.dig_edge_edge = Edge.RISING
-        self.read_task.triggers.arm_start_trigger.dig_edge_src = f"/{self.device_name}/di/SampleClock"
 
         # Setting the default amount of counts to 0 
-        
         counts = np.zeros(number_of_data_taking_cycles)
         # Starting the timing task and the reading tasks
         edge_counts = 0
@@ -187,8 +162,7 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
             self.samp_clk_task.stop()
             counts[index] = int(edge_counts[-1])
         
-        # Remove the start trigger
-        self.samp_clk_task.triggers.start_trigger = None
+
         # Returning the final number of counts 
         return counts
             
@@ -203,11 +177,36 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         # This is the task that determines how long we sample for so if we have a rate of 100 Hz and take 10 samples
         # The time spent collect photons is 0.1 seconds 
         self.samp_clk_task.di_channels.add_di_chan(f"{self.device_name}/{self.port}")
+        # The clock speed does not determine how fast we can count the click it determines how often we check with the daq how many counts have been gotten 
+        # Configuring sampling rate and time we need to know our devices max rate to determine if the dwell time is too short 
+        self.max_clock = nidaqmx.system.device.Device(self.device_name).ci_max_timebase
+
+        # Determining the timebase 
+        if self.max_clock >= 1e9:
+            self.timebase = f"{int(self.max_clock*(1e-9))}GHzTimebase"
+        elif self.max_clock < 1e9 and self.max_clock >= 1e6:
+            self.timebase = f"{int(self.max_clock*(1e-6))}MHzTimebase"
+        elif self.max_clock < 1e6 and self.max_clock >= 1e3:
+            self.timebase = f"{int(self.max_clock*(1e-3))}kHzTimebase"
+        else:
+            raise ValueError("Unkown timebase for sample clock")
+
+        # Determining the maximum sample rate linked to the clock frequency
+        self.max_sampling_rate = self.samp_clk_task.timing.samp_clk_max_rate
+
+    
+        # Default triggering steps
+        self.samp_clk_task.triggers.start_trigger.trig_type = TriggerType.DIGITAL_EDGE
+        self.samp_clk_task.triggers.start_trigger.dig_edge_edge = Edge.RISING
+        
+
+
         # This is connecting a counter to the reading data task 
         self.read_task.ci_channels.add_ci_count_edges_chan(f"{self.device_name}/{self.ctr}",
                                                     edge=Edge.RISING,
                                                     initial_count=0,
                                                     count_direction=CountDirection.COUNT_UP)
+        
         # We want to count the edges at the pfi provided 
         self.read_task.ci_channels.all.ci_count_edges_term = f"/{self.device_name}/{self.counter_pfi}"
         
@@ -215,6 +214,8 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         self.read_task.triggers.arm_start_trigger.trig_type = TriggerType.DIGITAL_EDGE
         self.read_task.triggers.arm_start_trigger.dig_edge_edge = Edge.RISING
         self.read_task.triggers.arm_start_trigger.dig_edge_src = f"/{self.device_name}/di/SampleClock"
+
+
 
     def close_connection(self):
         """Closes the tasks that have been opened 
@@ -228,10 +229,27 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
 
 
 if __name__ == "__main__":
+    system = nidaqmx.system.System.local()
+    for device in system.devices:
+        print(f"Device: {device.name}")
+        for terminal in device.terminals:
+            if "HzTimebase" in terminal:
+                try:
+                    timebase = int(terminal.replace(device.name).replace("/").repacle("HzTimebase","").replace("k","e3").replace("M","e6").replace("G","e9"))
+                    print(timebase)
+                except:
+                    pass
+                print(f"  - {terminal}")
 
     photon_counter_1 = NiPhotonCounterDaqControlled(device_name="PXI1Slot3",
                                                    counter_pfi="pfi0",
-                                                   trigger_pfi="pfi2")
+                                                   trigger_pfi="pfi1")
     with photon_counter_1 as pc1:
-        for i in range(10):
-            print(pc1.get_counts_per_second(50e-3))
+        print(pc1.get_counts_raw_when_triggered(5e-3,2))
+        print(pc1.get_counts_per_second(5e-3))
+
+        print(pc1.get_counts_raw_when_triggered(5e-3,2))
+        print(pc1.get_counts_per_second(5e-3))
+
+        print(pc1.get_counts_raw_when_triggered(5e-3,2))
+        print(pc1.get_counts_per_second(5e-3))
