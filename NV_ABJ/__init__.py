@@ -10,6 +10,7 @@ from NV_ABJ.abstract_device_interfaces.signal_generator import SignalGenerator
 from NV_ABJ.abstract_device_interfaces.photon_counter import PhotonCounter
 from NV_ABJ.abstract_device_interfaces.positioner import PositionerSingleAxis
 from NV_ABJ.abstract_device_interfaces.scanner import ScannerSingleAxis
+from NV_ABJ.abstract_device_interfaces.pulse_generator import PulseGenerator
 
 
 ###################################################################################################################
