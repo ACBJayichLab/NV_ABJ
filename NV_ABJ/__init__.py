@@ -44,6 +44,7 @@ from NV_ABJ.hardware_interfaces.scanner.ni_daq_scanner.ni_daq_scanner import *
 # Experimental Logic
 ###################################################################################################################
 from NV_ABJ.experimental_logic.confocal_scanning import *
+from NV_ABJ.sequence_generation.sequence_generation import *
 
 ###################################################################################################################
 # User interfaces
