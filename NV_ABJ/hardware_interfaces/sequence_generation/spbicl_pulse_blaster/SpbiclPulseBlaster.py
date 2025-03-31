@@ -5,7 +5,7 @@ from os.path import join
 from NV_ABJ import PulseGenerator, Sequence,seconds
 
 class SpbiclPulseBlaster(PulseGenerator):
-    def __init__(self,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 6,available_ports:int=23):
+    def __init__(self,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
         """This class interfaces with the pulse blaster using the command line interpreter provided by 
         SpinCore as an exe "spbicl.exe" 
 
@@ -135,8 +135,14 @@ class SpbiclPulseBlaster(PulseGenerator):
         """
         if not self._locked_commands:
             seq = Sequence()
-            seq.add_step(devices=devices)
+            # Uses a default timing of 1 this will be replaces later but prevents the duration error 
+            devices_on = []
+            for dev in devices:
+                if dev.device_status:
+                    devices_on.append(dev)
+            seq.add_step(devices=devices_on, duration=1)
             seq_text = self.generate_sequence(seq)
+
             self.load(sequence=seq_text)
             response = self.start()
             return response
@@ -157,7 +163,7 @@ class SpbiclPulseBlaster(PulseGenerator):
             is a more general function and you may want to generate sequences and save them without 
         """
 
-        def adding_lines(ind:int,addresses:int,duration:int,seq_length:int,seq_text:str)->str:
+        def adding_lines(ind:int,addresses:int,duration:int,seq_length:int,seq_text:str,operator=111)->str:
             """Used locally to add lines to the sequence 
             Args:
                 ind (int): what iteration of the loops we are on/ what line on the string we are writing 
@@ -171,13 +177,14 @@ class SpbiclPulseBlaster(PulseGenerator):
 
             Uses a continuous looping method and (branch to start) and uses continue on every line
             """
-            addresses = str(addresses).zfill(self.available_ports)
+            addresses = str(operator)+str(addresses).zfill(self.available_ports-2)
+
             if ind == 0:
-                seq_text = seq_text +f"start: 0b111{addresses}, {duration} ns\n"
+                seq_text = seq_text +f"start: 0b{addresses}, {duration} ns\n"
             elif(ind > 0 and ind < seq_length):
-                seq_text = seq_text +f"       0b111{addresses}, {duration} ns\n"
+                seq_text = seq_text +f"       0b{addresses}, {duration} ns\n"
             else:
-                seq_text = seq_text +f"       0b111{addresses}, {duration} ns, branch, start"
+                seq_text = seq_text +f"       0b{addresses}, {duration} ns, branch, start"
             
             return seq_text
 
@@ -234,3 +241,5 @@ class SpbiclPulseBlaster(PulseGenerator):
 # # # # # #  \ \_\\//_/ /
 # # # # # #   ~~  ~~  ~~ The frog of linear timing 
 # # # # # ##############################################################################################################
+
+

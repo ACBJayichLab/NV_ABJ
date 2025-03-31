@@ -3,7 +3,7 @@ __all__ = ["SequenceDevice","SequenceSubset","Sequence"]
 from dataclasses import dataclass
 from NV_ABJ import seconds
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class SequenceDevice:
     """This is the class that determines the basic properties of a devices passed to a sequence 
 
@@ -130,7 +130,7 @@ class Sequence:
 
                     # Goes through all devices 
                     devices_on = step["devices"]
-                    devices_off = seq._devices - set(step["devices"])
+                    devices_off = self._devices - set(step["devices"])
 
                     # Removing any devices that are no longer in the on state
                     devices_currently_on = devices_currently_on-devices_off
@@ -176,9 +176,10 @@ class Sequence:
                     if devices_off == self._devices:
                         step_times_ns.add(time_ns) # Adding to the set incase there is a unique time 
 
-
-                    # Increasing time by one step in the sequence 
-                    time_ns = int(time_ns+step["duration"]*step["time_unit"].value/seconds.ns.value)
+                    # Skipping durations that are 0 in length
+                    if step["duration"] != None and step["duration"] != 0:
+                        # Increasing time by one step in the sequence 
+                        time_ns = int(time_ns+step["duration"]*step["time_unit"].value/seconds.ns.value)
 
         # Adding the ending time and converting set to a sorted list
         step_times_ns.add(time_ns) 
