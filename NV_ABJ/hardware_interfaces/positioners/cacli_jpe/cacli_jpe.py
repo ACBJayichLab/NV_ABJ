@@ -56,11 +56,7 @@ class CacliJpe(PositionerSingleAxis):
     #########################################################################################################################################################################    
     # Implementation of the abstract signal generator functions 
     #########################################################################################################################################################################    
-    @property
-    def device_configuration_class(self):
-        return self.piezo_driver_target, self.piezo_address, self.piezo_stage, self.temperature_kelvin, self.frequency_hz, self.relative_step_size_percent, self.torque_factor
-
-    
+   
     def move_positioner(self,direction,steps):
         """
         The move command starts moving an actuator with specified parameters. If an RSM or OEM2 is

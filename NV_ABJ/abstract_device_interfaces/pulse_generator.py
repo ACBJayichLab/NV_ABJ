@@ -40,7 +40,7 @@ class PulseGenerator(ConnectedDevice,metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def update_device(self,devices:list)->int:
+    def update_devices(self,devices:list)->int:
         """From a list of devices loaded they are then checked for state if the state is True 
         it turns them on if the state is False it turns them off 
 

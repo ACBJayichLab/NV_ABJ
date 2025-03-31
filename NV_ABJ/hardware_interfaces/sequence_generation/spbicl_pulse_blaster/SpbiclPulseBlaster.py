@@ -19,9 +19,15 @@ class SpbiclPulseBlaster(PulseGenerator):
         self.maximum_step_time_s = maximum_step_time_s
         self.available_ports = available_ports
         self._locked_commands = False
-
     
-    def load_sequence(self, sequence:str)->int:
+    def make_connection(self):
+        # This is handled by spbicl.exe
+        pass
+    def close_connection(self):
+        # This is handled by spbicl.exe
+        pass
+    
+    def load(self, sequence:str)->int:
         """
         This loads a sequence into the pulse blaster. The sequence is the same as the basic file format you upload using a
         spin core file format 
@@ -216,6 +222,7 @@ class SpbiclPulseBlaster(PulseGenerator):
             raise ValueError("Sequence must contain one or more steps")
 
         return sequence_text
+
 
 # # # # # ##############################################################################################################
 # # # # # #     _    _

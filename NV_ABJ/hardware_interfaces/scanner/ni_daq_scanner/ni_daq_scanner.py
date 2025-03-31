@@ -90,11 +90,15 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
     def close_connection(self):
         pass
     
-    @property
-    def device_configuration_class(self):
-        response = [self.conversion_volts_per_meter_setting, self.device_name_output, self.channel_name_output,
-                    self.device_name_input,self.channel_name_input,self.position_limits_m,
-                    self.conversion_volts_per_meter_getting]
+    
+    def __repr__(self):
+        response = f"""Conversion Factor Setting:{self.conversion_volts_per_meter_setting},
+                       Device Name Output: {self.device_name_output},
+                            Channel Output: {self.channel_name_output},
+                       Device Name Input: {self.device_name_input},
+                            Channel Input: {self.channel_name_input},
+                       Positional Limits: {self.position_limits_m},
+                       Conversion Voltage Getting: {self.conversion_volts_per_meter_getting}"""
         return response
     
     #########################################################################################################################################################################    

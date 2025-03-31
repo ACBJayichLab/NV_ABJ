@@ -29,11 +29,6 @@ class SG380(SignalGenerator):
         self._rm = None
         self._srs = None
 
-
-    @property
-    def device_configuration_class(self):
-        return self.gpib_address, self.channel
-
     def make_connection(self):
         
         # Takes a daq card id, daq channel, and a gpib id and returns a class to control the srs

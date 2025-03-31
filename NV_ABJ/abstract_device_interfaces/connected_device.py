@@ -1,11 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
 class ConnectedDevice(metaclass=ABCMeta):
-
-    @property
-    @abstractmethod
-    def device_configuration_class(self):
-        ...
     
     @abstractmethod
     def make_connection(self):

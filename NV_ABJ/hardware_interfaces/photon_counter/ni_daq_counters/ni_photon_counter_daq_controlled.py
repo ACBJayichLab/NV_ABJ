@@ -226,5 +226,11 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         self.samp_clk_task.close()
     
     @property
-    def device_configuration_class(self):
-        return self.device_name, self.counter_pfi, self.trigger_pfi, self.ctr, self.port, self.timeout_waiting_for_data_s
+    def __repr__(self):
+        response = f"""Device Name: {self.device_name},
+                       Counter PFI: {self.counter_pfi}, 
+                       Trigger PFI: {self.trigger_pfi},
+                       Counter: {self.ctr},
+                       Port: {self.port},
+                       Timeout Time (s):{self.timeout_waiting_for_data_s}"""
+        return response
