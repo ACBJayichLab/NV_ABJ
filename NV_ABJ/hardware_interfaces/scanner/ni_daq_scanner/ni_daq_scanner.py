@@ -187,3 +187,11 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
         except:
             raise Exception("Failed to stabilize voltage output")
     
+confocal_x = NiDaqSingleAxisScanner(conversion_volts_per_meter_setting=10/(50e-6),
+                                              device_name_output="PXI1Slot2",
+                                              channel_name_output="ao0",
+                                              position_limits_m=(-50e-6,50e-6))
+
+with confocal_x:
+    confocal_x.set_position_m(0)
+    
