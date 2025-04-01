@@ -5,14 +5,14 @@ import pyvisa
 from enum import IntEnum
 
 # Importing abstract classes 
-from NV_ABJ import SignalGenerator
+from NV_ABJ import MicrowaveSource
 
 class SG380Channels(IntEnum):
     n_type:int = 0
     bnc:int = 1
 
 
-class SG380(SignalGenerator):
+class SG380(MicrowaveSource):
     """This is where the constraints for connecting to the correct signal generator are stored such as the address and if we want to use the n_type_port
 
     Args:

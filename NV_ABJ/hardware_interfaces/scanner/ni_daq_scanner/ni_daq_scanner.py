@@ -186,4 +186,3 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
                
         except:
             raise Exception("Failed to stabilize voltage output")
-    

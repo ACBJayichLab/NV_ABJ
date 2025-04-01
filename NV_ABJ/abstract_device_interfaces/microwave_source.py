@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from NV_ABJ import ConnectedDevice
 
-class SignalGenerator(ConnectedDevice,metaclass=ABCMeta):
+class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
     """This is a class for a signal generator not limited to but used for control of the RF supplied to the NV and allows for a general 
     implementation for the singal frequency generators 
     """

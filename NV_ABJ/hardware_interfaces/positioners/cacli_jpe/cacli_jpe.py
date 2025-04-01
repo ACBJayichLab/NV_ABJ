@@ -21,14 +21,15 @@ class CacliVersion(IntEnum):
     v6 = 6 # 1038E201905-XX, 1038E201910-XX, 1039E201911-XX
     v7 = 7 # Firmware not on the list (newer models)
 
-class CacliJpe(PositionerSingleAxis):
+class CacliJpeCadm2(PositionerSingleAxis):
 
     def __init__(self,piezo_driver_target:str,piezo_address:int,piezo_stage:str,temperature_kelvin:float,
                  frequency_hz:int,relative_step_size_percent:float,
                  torque_factor:int = 1,cacli_version:CacliVersion = CacliVersion.v7,
                  time_out:float = 0.1,delay_between_attempts_s:int = 5,number_of_attempts:int = 5):
         """This is a basic command method for controlling the JPE positioners over USB using the cacli commands 
-            This treats the JPE as a PositionerSingleAxis class
+            This treats the JPE as a PositionerSingleAxis class it is for controlling a CADM2 module by JPE
+
         Args:
             piezo_driver_target (str): The address of the communication box e.g. 1038E201410-004
             piezo_address (int): A value between 1 and 6 for where the piezo driver is located in the target device 
@@ -38,6 +39,7 @@ class CacliJpe(PositionerSingleAxis):
             relative_step_size_percent (float): This is the relative step 0 to 100% you can reduce vibrations by reducing step size
             torque_factor (int, optional): For a knob how strongly it is driven. Defaults to 1.
             cacli_version (CacliVersion, optional): The version of cacli installed on the computer. Defaults to CacliVersion.v7.
+            jpe_module (JpeModule, optional): Select the type of module you are running your JPE on 
             time_out (float, optional): Some versions don't exit on a move or cause errors this times out of the command window. Defaults to 0.1.
             delay_between_attempts_s (int, optional): If the command is attempted multiple times delay between attempts. Defaults to 5.
             number_of_attempts (int, optional): How many attempts it will retry the command. This is not done for motion commands incase it moves repeatably. Defaults to 5.
