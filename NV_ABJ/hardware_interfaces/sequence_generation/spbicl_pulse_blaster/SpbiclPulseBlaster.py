@@ -1,3 +1,5 @@
+__all__ = ["SpbiclPulseBlaster"]
+
 import subprocess
 from tempfile import TemporaryDirectory
 from os.path import join
