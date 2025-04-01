@@ -119,7 +119,7 @@ class SpbiclPulseBlaster(PulseGenerator):
         empty_sequence = ""
 
         if not self._locked_commands:
-            response = self.load_sequence(sequence=empty_sequence)
+            response = self.load(sequence=empty_sequence)
             return response   
         
         else:
@@ -247,4 +247,25 @@ class SpbiclPulseBlaster(PulseGenerator):
 # # # # # #   ~~  ~~  ~~ The frog of linear timing 
 # # # # # ##############################################################################################################
 
+from NV_ABJ.experimental_logic.sequence_generation import SequenceDevice
 
+
+sequence_generator = SpbiclPulseBlaster()
+
+microwave_switch = SequenceDevice(address=2,
+                                  device_label="Microwaves")
+
+apd_trigger = SequenceDevice(address=1,
+                             device_label="APD")
+
+aom_trigger = SequenceDevice(address=0,
+                             device_label="AOM")
+
+sequence_generator.clear()
+
+# microwave_switch.device_status = False
+
+# apd_trigger.device_status = False
+# aom_trigger.device_status = True
+
+# sequence_generator.update_devices([microwave_switch,apd_trigger,aom_trigger])
