@@ -10,12 +10,12 @@ class SequenceDevice:
     Args:
         address(any): This is an identifier that the pulse generator will use. It could just be an integer 
         device_label(str): This is the general name the device will have e.g. "Green AOM" this name is used for graphs and labels 
-        delayed_to_on_s(float): This is how long of a delay from signalling the device to be on to the device actually turning on will be in seconds. Defaults to None
+        delayed_to_on_s(float): This is how long of a delay from signalling the device to be on to the device actually turning on will be in seconds. Defaults to 0
         device_status(bool): This indicates if the device should be turned on when updated True(on) or False(off). Defaults to False (off)
     """
     address:any # What the device that is feed into the sequence class will use to identify the device 
     device_label:str # The name that will be used for labeling and graphing
-    delayed_to_on_s:float = 0 # How many seconds it takes to turn on 
+    delayed_to_on_s:float = 0 # How many seconds it takes to turn on must be greater than or equal to zero
     device_status:bool = False # False indicates an off device when updating the devices True will be on
 
     # This allows us to sort the devices based on the delay time 
@@ -73,7 +73,7 @@ class SequenceSubset:
 
 class Sequence:
 
-    def __init__(self,sequence_subsets:list=None,devices:set = None):
+    def __init__(self,sequence_subsets:list=None,devices:set = None,loop_end_condition:bool=True):
         if sequence_subsets == None: 
             self.sequence_subsets = []
         else:
@@ -82,6 +82,7 @@ class Sequence:
             self._devices = set()
         else:
             self._devices = devices
+        self.loop_end_condition = loop_end_condition
             
     def add_step(self,devices:list=None,duration:float=None, time_unit:seconds=seconds.s):
         sub_sequence = SequenceSubset()
