@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "NV_ABJ"
+version = "0.0.01"
+dependencies = ["pyvisa",
+                "numpy",
+                "scipy",
+                "pandas",
+                "nidaqmx"
+                ]
+requires-python = ">=3.9"
+authors = [
+  {name = "Aaron Schwan", email = "schwanaaron@gmail.com"},
+]
+maintainers = [
+  {name = "Aaron Schwan", email = "schwanaaron@gmail.com"}
+]
+description = "A python based approach to controlling experiments in Ania B. Jayich's lab in a forward compatible method"
+readme = "README.md"
+license = "MIT"  # or license = {file = "LICENSE.txt"} for legacy declaration
+keywords = ["NV", "ABJ", "image scan"]
+classifiers = [
+  "Programming Language :: Python"
+]
+
+[project.urls]
+Homepage = "https://github.com/ACBJayichLab/NV_ABJ"
+Documentation = "https://github.com/ACBJayichLab/NV_ABJ.wiki.git"
+Repository = "https://github.com/ACBJayichLab/NV_ABJ"
+"Bug Tracker" = "https://github.com/ACBJayichLab/NV_ABJ/issues"
+Changelog = "https://github.com/ACBJayichLab/NV_ABJ/pulse"
+
