@@ -90,9 +90,10 @@ class SG380(MicrowaveSource):
         """
         return self._power_range_dbm
 
-    def set_frequency_hz(self,frequency:int):
+    def generate_sine_wave_hz_dbm(self,frequency:int,amplitude:float,*args,**kwargs):
         """sets the frequency of the srs 
         """
+        self.set_power_dbm(amplitude)
         self.change_frequency(frequency, unit="Hz")
    
     def get_frequency_hz(self)->float:
@@ -150,7 +151,7 @@ class SG380(MicrowaveSource):
         """
         return self.get_frequency_list()
 
-    def iterate_frequency(self):
+    def iterate(self):
         """This will iterate through the loaded frequency list essentially setting the current frequency to the triggered values
         """
         self.trigger_list_item()
@@ -282,4 +283,3 @@ class SG380(MicrowaveSource):
         else:
             raise Exception("Failed to confirm srs connection id may be incorrect")
         
-
