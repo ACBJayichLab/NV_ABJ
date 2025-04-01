@@ -78,17 +78,28 @@ class SG380(SignalGenerator):
     # Implementation of the abstract signal generator functions 
     #########################################################################################################################################################################    
     @property
-    def frequency_range_hz(self):
+    def frequency_range_hz(self)->tuple:
         """This is meant to take in the frequency range of the device as a tuple in Hz
         """
         return self._frequency_range_hz
     
     @property
-    def power_range_dbm(self):
+    def power_range_dbm(self)->tuple:
         """This takes in the power range of the device that you are interfacing with as a tuple in dBm
         """
         return self._power_range_dbm
+    
+    def generate_sine_wave_hz_dbm(self, frequency:int,amplitude:float,*args,**kwargs):
+        """sets the frequency and amplitude of the srs  
+        """
+        self.change_frequency(frequency, unit="Hz")
 
+        match self.channel:
+            case SG380Channels.n_type:
+                self.change_amplitude_n_type(amplitude)
+            case SG380Channels.bnc:
+                self.change_amplitude_bnc(amplitude)
+    
     def set_frequency_hz(self,frequency:int):
         """sets the frequency of the srs 
         """
@@ -137,14 +148,14 @@ class SG380(SignalGenerator):
             case SG380Channels.bnc:
                 self.bnc_off()
 
-    def load_frequency_list_hz(self,frequency_list):
+    def load_frequency_list_hz(self,frequency_list:list):
         """This is meant to be a command to load a frequency list to a device if the device can't do this it can be implemented using the set frequency
             and saving the list as a property to the class triggering you can just iterate through the list 
         """
         self.send_frequency_list(frequency_list)
         self.trigger_list_item() # Goes to the first entrance on the list
 
-    def get_frequency_list_hz(self):
+    def get_frequency_list_hz(self)->list:
         """ Returns a list of the currently loaded frequencies 
         """
         return self.get_frequency_list()

@@ -8,31 +8,41 @@ class SignalGenerator(ConnectedDevice,metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def frequency_range_hz(self):
+    def frequency_range_hz(self)->tuple:
         """This is meant to take in the frequency range of the device as a tuple in Hz
         """
         ...
     
     @property
     @abstractmethod
-    def power_range_dbm(self):
+    def power_range_dbm(self)->tuple:
         """This takes in the power range of the device that you are interfacing with as a tuple in dBm
         """
         ...
     @abstractmethod
-    def get_frequency_hz(self):
+    def get_frequency_hz(self)->int:
         """Returns the frequency of the signal generator in Hz
         """
         ...
     @abstractmethod
-    def get_power_dbm(self):
+    def get_power_dbm(self)->float:
         """Returns the power of the signal generator in dBm
         """
         ...
 
     # every signal generator needs to have these commands 
     @abstractmethod
-    def set_frequency_hz(self,frequency):
+    def generate_sine_wave_hz_dbm(self,frequency:int,amplitude:float,*args,**kwargs):
+        """Sets a singal frequency on the device in question in Hz
+        and the amplitude of the sine wave in dbm
+
+        Args:
+            frequency (float): Frequency in Hz
+            amplitude (float): Power in dBm   
+        """
+        pass
+    @abstractmethod
+    def set_frequency_hz(self, frequency:int):
         """Sets a singal frequency on the device in question in Hz
 
         Args:
@@ -41,7 +51,7 @@ class SignalGenerator(ConnectedDevice,metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def set_power_dbm(self,power):
+    def set_power_dbm(self,power:float):
         """Sets the signal power in dBm 
 
         Args:
@@ -64,13 +74,13 @@ class SignalGenerator(ConnectedDevice,metaclass=ABCMeta):
     
     # these will likely be compound commands  
     @abstractmethod
-    def load_frequency_list_hz(self,frequency_list):
+    def load_frequency_list_hz(self,frequency_list:list):
         """This is meant to be a command to load a frequency list to a device if the device can't do this it can be implemented using the set frequency
             and saving the list as a property to the class triggering you can just iterate through the list 
         """
         pass
     @abstractmethod
-    def get_frequency_list_hz(self):
+    def get_frequency_list_hz(self)->list:
         """returns the frequency list currently loaded 
         """
         ...
