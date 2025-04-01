@@ -4,6 +4,7 @@ __all__ = ["SG380Channels","SG380"]
 import pyvisa
 from enum import IntEnum
 
+# Importing abstract classes 
 from NV_ABJ import SignalGenerator
 
 class SG380Channels(IntEnum):

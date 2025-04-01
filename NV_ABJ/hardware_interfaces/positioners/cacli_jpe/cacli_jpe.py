@@ -9,6 +9,7 @@ from subprocess import Popen, PIPE
 import time
 from enum import IntEnum
 
+# importing abstract class
 from NV_ABJ import PositionerSingleAxis
 
 class CacliVersion(IntEnum):

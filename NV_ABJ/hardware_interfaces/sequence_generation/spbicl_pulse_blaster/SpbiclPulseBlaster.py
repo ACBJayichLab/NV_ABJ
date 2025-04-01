@@ -2,7 +2,12 @@ import subprocess
 from tempfile import TemporaryDirectory
 from os.path import join
 
-from NV_ABJ import PulseGenerator, Sequence,seconds
+# Importing abstract class and units 
+from NV_ABJ import PulseGenerator,seconds
+
+# Importing sequence 
+from NV_ABJ.experimental_logic.sequence_generation import Sequence
+
 
 class SpbiclPulseBlaster(PulseGenerator):
     def __init__(self,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
