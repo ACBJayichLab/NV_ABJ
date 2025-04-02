@@ -345,14 +345,14 @@ dev0 = SequenceDevice(0,"device 0",10e-9)
 dev1 = SequenceDevice(1,"device 1",20e-9)
 dev2 = SequenceDevice(2,"device 2",30e-9)
 
-# sub = SequenceSubset()
-# sub.add_step([dev0,dev2],100,seconds.ns)
-# sub.add_step([dev0,dev1],100,seconds.ns)
-# sub.loop_steps = 3
+sub = SequenceSubset()
+sub.add_step([dev0,dev2],100,seconds.ns)
+sub.add_step([dev0,dev1],100,seconds.ns)
+sub.loop_steps = 10
 
 seq = Sequence()
 seq.add_step([],100,seconds.ns)
-# seq.add_sub_sequence(sub)
+seq.add_sub_sequence(sub)
 seq.add_step([dev0,dev2],100,seconds.ns)
 seq.add_step([dev0,dev1],100,seconds.ns)
 seq.add_step([dev0,dev2],200,seconds.ns)
