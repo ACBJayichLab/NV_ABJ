@@ -217,7 +217,6 @@ class Sequence:
             if shifting_times != []:
                 # We need to iterate from the longest delay 
                 shifting_times,devices_needing_wrap = zip(*sorted(zip(shifting_times,devices_needing_wrap)))
-                print( shifting_times,devices_needing_wrap)
                 
 
                 # We now need to add the times to every device that is on within the delay of being turned on
@@ -283,11 +282,9 @@ class Sequence:
                 for device_address in lin_time_dict:               
                     if previous_time in lin_time_dict[device_address]["on_times_ns"]:
                         devices_previously_on.add(device_address)
-                print("Current time",step_time)
 
                 # If the devices were equal we want to find all the time it takes until they are no longer equal
                 for ind,s_t in enumerate(step_times_ns[index+1:]): 
-                    print("next",s_t)
                     devices_currently_on.clear()
 
                     # Getting which devices were on before and now
@@ -307,9 +304,61 @@ class Sequence:
                                     lin.remove(t)               
                         break
 
-
+        stp_tm = set(stp_tm)
+        stp_tm.add(0)
         step_times_ns = list(stp_tm)
         step_times_ns.sort()
 
         return lin_time_dict, step_times_ns
     
+    def create_instructions(self,allow_only_looping:bool = False, allow_looping_and_subroutine:bool = True,wrapped:bool=True,remove_none_addresses:bool=True):
+        # We want to start with what the linear time has already given us time wise
+        linear_time_dict, step_times = self.linear_time_sequence(wrapped=wrapped,remove_none_addresses=remove_none_addresses)
+        
+        # print(step_times)
+        # for device_address in linear_time_dict:
+        #     print(device_address)
+        #     print(linear_time_dict[device_address]["on_times_ns"])
+        instruction_set = {}
+        
+        # We want to convert into a list of instructions 
+        for ind,time in enumerate(step_times[:-1]):
+            instruction_set[ind] = {}
+            instruction_set[ind]["duration"] = step_times[ind+1]-time
+            instruction_set[ind]["devices"] = set()
+
+            for device_address in linear_time_dict:
+                if time in linear_time_dict[device_address]["on_times_ns"]:
+                    instruction_set[ind]["devices"].add(device_address)
+
+
+
+        if allow_looping_and_subroutine:
+            pass
+        elif allow_only_looping:
+            pass
+
+        return instruction_set
+
+
+dev0 = SequenceDevice(0,"device 0",10e-9)
+dev1 = SequenceDevice(1,"device 1",20e-9)
+dev2 = SequenceDevice(2,"device 2",30e-9)
+
+# sub = SequenceSubset()
+# sub.add_step([dev0,dev2],100,seconds.ns)
+# sub.add_step([dev0,dev1],100,seconds.ns)
+# sub.loop_steps = 3
+
+seq = Sequence()
+seq.add_step([],100,seconds.ns)
+# seq.add_sub_sequence(sub)
+seq.add_step([dev0,dev2],100,seconds.ns)
+seq.add_step([dev0,dev1],100,seconds.ns)
+seq.add_step([dev0,dev2],200,seconds.ns)
+seq.add_step([],100,seconds.ns)
+
+instructions = seq.create_instructions()
+
+for instruction in instructions:
+    print(instructions[instruction])
