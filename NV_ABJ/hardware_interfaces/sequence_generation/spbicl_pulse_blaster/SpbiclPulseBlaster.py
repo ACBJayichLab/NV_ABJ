@@ -222,7 +222,7 @@ class SpbiclPulseBlaster(PulseGenerator):
 
                 # For devices that need to be shifted we need to recursively add them in descending order
                 if shifted_times != []:
-                    sorted_shift = zip(*sorted(zip(shifted_times, devices_needing_shift), reverse=True))
+                    sorted_shift = zip(*sorted(zip(shifted_times, devices_needing_shift), reverse=False))
                     
                     # Starting from the longest shift we want to add devices to the sequence 
                     for ind, time,device in enumerate(sorted_shift):
@@ -234,7 +234,6 @@ class SpbiclPulseBlaster(PulseGenerator):
                                 for device_address in linear_time_devices:
                                     if step_time in linear_time_devices[device_address]["on_times_ns"]:
                                         linear_time_devices[device_address]["on_times_ns"].add(time)
-
 
                 # Removing any times from the sequence less than zero
                 for step_time in step_times_ns:
@@ -295,22 +294,4 @@ class SpbiclPulseBlaster(PulseGenerator):
 # # # # # #  \ \_\\//_/ /
 # # # # # #   ~~  ~~  ~~ The frog of linear timing 
 # # # # # ##############################################################################################################
-
-
-# # from NV_ABJ import SequenceDevice,Sequence,SequenceSubset
-
-pulse_blaster = SpbiclPulseBlaster()
-
-dev0 = SequenceDevice(0,"device 0",10e-9)
-dev1 = SequenceDevice(1,"device 1")#,10e-9)
-dev2 = SequenceDevice(2,"device 2",10e-9)
-
-seq = Sequence()
-# seq.add_step([],100,seconds.ns)
-seq.add_step([dev0,dev2],100,seconds.ns)
-seq.add_step([dev0,dev1],100,seconds.ns)
-seq.add_step([dev0,dev2],100,seconds.ns)
-
-print(seq_list := pulse_blaster.generate_sequence(seq))
-print(set(seq_list))
 
