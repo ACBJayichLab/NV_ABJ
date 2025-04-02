@@ -311,7 +311,7 @@ class Sequence:
 
         return lin_time_dict, step_times_ns
     
-    def create_instructions(self,allow_only_looping:bool = False, allow_looping_and_subroutine:bool = True,wrapped:bool=True,remove_none_addresses:bool=True):
+    def create_instructions(self,allow_subroutine:bool = True,wrapped:bool=True,remove_none_addresses:bool=True):
         # We want to start with what the linear time has already given us time wise
         linear_time_dict, step_times = self.linear_time_sequence(wrapped=wrapped,remove_none_addresses=remove_none_addresses)
         
@@ -319,24 +319,46 @@ class Sequence:
         # for device_address in linear_time_dict:
         #     print(device_address)
         #     print(linear_time_dict[device_address]["on_times_ns"])
-        instruction_set = {}
+        instruction_set = []
         
         # We want to convert into a list of instructions 
         for ind,time in enumerate(step_times[:-1]):
-            instruction_set[ind] = {}
-            instruction_set[ind]["duration"] = step_times[ind+1]-time
-            instruction_set[ind]["devices"] = set()
+            instruction_set.append([step_times[ind+1]-time,set()])
 
             for device_address in linear_time_dict:
                 if time in linear_time_dict[device_address]["on_times_ns"]:
-                    instruction_set[ind]["devices"].add(device_address)
+                    instruction_set[ind][1].add(device_address)
+
+        print(len(instruction_set))
+        if allow_subroutine:
+            minimum_repetition_length = 3
+            maximum_sequence_length = 20
+            unique_instructions = {}
+
+            for ind,line in enumerate(instruction_set):
+                
+                if str(line) not in unique_instructions:
+                    unique_instructions[str(line)] = [ind]
+
+                else:
+                    unique_instructions[str(line)].append(ind)
+            
+            for ind,line_1 in enumerate(unique_instructions):
+                if len(indexes := unique_instructions[line_1]) > 1:
+
+                    for ind, i in enumerate(indexes[:-1]):
+                        # print(indexes[ind+1])
+                        line = instruction_set[i:indexes[ind+1]]
+
+                        print(line)
+                        # print(line[0],len(line))
+
+                        
 
 
 
-        if allow_looping_and_subroutine:
-            pass
-        elif allow_only_looping:
-            pass
+        for inst in instruction_set:
+            print(inst)
 
         return instruction_set
 
@@ -360,5 +382,5 @@ seq.add_step([],100,seconds.ns)
 
 instructions = seq.create_instructions()
 
-for instruction in instructions:
-    print(instructions[instruction])
+# for instruction in instructions:
+#     print(instructions[instruction])
