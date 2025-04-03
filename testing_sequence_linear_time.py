@@ -348,7 +348,6 @@ class Sequence:
 
             for i,line in enumerate(instruction_set):
                 length, seq = finding_maximum_sequence(instruction_set[i:])
-                # print(i,line)
                 
                 # If the length is longer than 1 we can loop it 
                 if length != 1 and i > final_instruction_index:
@@ -372,14 +371,12 @@ class Sequence:
                     inst = instruction_set[i:]
 
                     for ind, _ in enumerate(inst):
-                        print(ind*(length-1),(ind+1)*(length))
                         if str(seq) == str(inst[ind*(length):(ind+1)*(length)]):
                             instances = instances+1
 
                         else:
                             break
                     final_instruction_index = i+instances*length-1
-                    print("final",final_instruction_index)
 
                     # Adding to the reduced instructions with the number of loops
                     reduced_instructions[reduced_instructions_length] = (True,key,instances)
@@ -403,8 +400,6 @@ class Sequence:
             for ind, item in enumerate(instruction_set):
                 instructions[ind] = (False,item,0)
 
-
-
         return instructions,sub_routines
 
 
@@ -420,7 +415,7 @@ sub.loop_steps = 50
 sub2 = SequenceSubset()
 sub2.add_step([dev0,dev1,dev2],100,seconds.ns)
 sub2.add_step([dev0,dev1],100,seconds.ns)
-sub2.loop_steps = 50
+sub2.loop_steps = 4000
 
 
 seq = Sequence()
@@ -433,9 +428,10 @@ seq.add_sub_sequence(sub2)
 
 seq.add_step([dev0,dev2],200,seconds.ns)
 # seq.add_step([],100,seconds.ns)
-
+import time
+start = time.time()
 instructions,sub_routines = seq.create_instructions(allow_subroutine=True)
-
+print(time.time()-start)
 print(f"Reduced Instruction {len(instructions)}")
 for r in instructions:
     print(r,instructions[r])
