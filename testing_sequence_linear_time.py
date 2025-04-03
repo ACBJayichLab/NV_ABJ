@@ -329,38 +329,83 @@ class Sequence:
                 if time in linear_time_dict[device_address]["on_times_ns"]:
                     instruction_set[ind][1].add(device_address)
 
-        print(len(instruction_set))
         if allow_subroutine:
-            minimum_repetition_length = 3
-            maximum_sequence_length = 20
-            unique_instructions = {}
 
-            for ind,line in enumerate(instruction_set):
+            def finding_maximum_sequence(seq):
+                max_len = int(len(seq) / 2)
+                for x in range(2, max_len):
+                    if str(seq[0:x]) == str(seq[x:2*x]) :
+                        return x,seq[0:x]
+
+                return 1, []
+    
+            # Enters loop
+            count = 0
+            sub_routines = {}
+            reduced_instructions = {}
+            reduced_instructions_length = 0
+            final_instruction_index = 0
+
+            for i,line in enumerate(instruction_set):
+                length, seq = finding_maximum_sequence(instruction_set[i:])
+                # print(i,line)
                 
-                if str(line) not in unique_instructions:
-                    unique_instructions[str(line)] = [ind]
+                # If the length is longer than 1 we can loop it 
+                if length != 1 and i > final_instruction_index:
+                    
+                    # We want to check if the sequence is in the sub_routines
+                    key = None 
+                    for sub in sub_routines:
+                        if sub_routines[sub] == seq:
+                            key = sub
+                            
 
-                else:
-                    unique_instructions[str(line)].append(ind)
-            
-            for ind,line_1 in enumerate(unique_instructions):
-                if len(indexes := unique_instructions[line_1]) > 1:
-
-                    for ind, i in enumerate(indexes[:-1]):
-                        # print(indexes[ind+1])
-                        line = instruction_set[i:indexes[ind+1]]
-
-                        print(line)
-                        # print(line[0],len(line))
-
+                    if key == None:
+                        # Adding a sub routine if they are unique 
+                        key = count
+                        sub_routines[count] = seq
+                        count = count + 1
                         
+                    # We now want to find the number of times this list is repeated 
+                    instances = 0
+                    final_instruction_index = 0
+                    inst = instruction_set[i:]
+
+                    for ind, _ in enumerate(inst):
+                        print(ind*(length-1),(ind+1)*(length))
+                        if str(seq) == str(inst[ind*(length):(ind+1)*(length)]):
+                            instances = instances+1
+
+                        else:
+                            break
+                    final_instruction_index = i+instances*length-1
+                    print("final",final_instruction_index)
+
+                    # Adding to the reduced instructions with the number of loops
+                    reduced_instructions[reduced_instructions_length] = (True,key,instances)
+                    
+                    # Incrementing the reduced instruction set by one 
+                    reduced_instructions_length = reduced_instructions_length + 1
+
+
+                elif length == 1 and i > final_instruction_index:
+                        # If this is not the start to a loop we want to make sure to add it to the list 
+                        reduced_instructions[reduced_instructions_length] = (False,line,0)
+                    
+                        # Incrementing the reduced instruction set by one 
+                        reduced_instructions_length = reduced_instructions_length + 1
+            
+            instructions = reduced_instructions
+        
+        else:
+            instructions = {}
+            sub_routines = {}
+            for ind, item in enumerate(instruction_set):
+                instructions[ind] = (False,item,0)
 
 
 
-        for inst in instruction_set:
-            print(inst)
-
-        return instruction_set
+        return instructions,sub_routines
 
 
 dev0 = SequenceDevice(0,"device 0",10e-9)
@@ -370,17 +415,33 @@ dev2 = SequenceDevice(2,"device 2",30e-9)
 sub = SequenceSubset()
 sub.add_step([dev0,dev2],100,seconds.ns)
 sub.add_step([dev0,dev1],100,seconds.ns)
-sub.loop_steps = 10
+sub.loop_steps = 50
+
+sub2 = SequenceSubset()
+sub2.add_step([dev0,dev1,dev2],100,seconds.ns)
+sub2.add_step([dev0,dev1],100,seconds.ns)
+sub2.loop_steps = 50
+
 
 seq = Sequence()
 seq.add_step([],100,seconds.ns)
 seq.add_sub_sequence(sub)
+seq.add_step([],100,seconds.ns)
 seq.add_step([dev0,dev2],100,seconds.ns)
 seq.add_step([dev0,dev1],100,seconds.ns)
+seq.add_sub_sequence(sub2)
+
 seq.add_step([dev0,dev2],200,seconds.ns)
-seq.add_step([],100,seconds.ns)
+# seq.add_step([],100,seconds.ns)
 
-instructions = seq.create_instructions()
+instructions,sub_routines = seq.create_instructions(allow_subroutine=True)
 
-# for instruction in instructions:
-#     print(instructions[instruction])
+print(f"Reduced Instruction {len(instructions)}")
+for r in instructions:
+    print(r,instructions[r])
+
+print("sub_routines")
+for r in sub_routines:
+    print(r,sub_routines[r])
+
+    
