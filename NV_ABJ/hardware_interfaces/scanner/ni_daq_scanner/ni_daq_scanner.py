@@ -13,6 +13,7 @@ import time # used for timing out the daq interactions
 # National instruments imports 
 import nidaqmx
 
+# Importing abstract class
 from NV_ABJ import ScannerSingleAxis
 
 
@@ -185,4 +186,3 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
                
         except:
             raise Exception("Failed to stabilize voltage output")
-    

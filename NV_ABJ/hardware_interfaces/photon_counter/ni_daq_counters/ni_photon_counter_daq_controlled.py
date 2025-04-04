@@ -3,13 +3,12 @@ __all__ = ["NiPhotonCounterDaqControlled"]
 # Numpy is used for array allocation and fast math operations here
 import numpy as np
 from numpy.typing import NDArray
-from dataclasses import dataclass
 
 # National instruments daq imports 
 import nidaqmx
 from nidaqmx.constants import CountDirection, Edge, AcquisitionType, TaskMode,TriggerType, READ_ALL_AVAILABLE
 
-# importing base class
+# importing abstract class
 from NV_ABJ import PhotonCounter
 
 class NiPhotonCounterDaqControlled(PhotonCounter):

@@ -4,14 +4,15 @@ __all__ = ["SG380Channels","SG380"]
 import pyvisa
 from enum import IntEnum
 
-from NV_ABJ import SignalGenerator
+# Importing abstract classes 
+from NV_ABJ import MicrowaveSource
 
 class SG380Channels(IntEnum):
     n_type:int = 0
     bnc:int = 1
 
 
-class SG380(SignalGenerator):
+class SG380(MicrowaveSource):
     """This is where the constraints for connecting to the correct signal generator are stored such as the address and if we want to use the n_type_port
 
     Args:
@@ -88,21 +89,11 @@ class SG380(SignalGenerator):
         """This takes in the power range of the device that you are interfacing with as a tuple in dBm
         """
         return self._power_range_dbm
-    
-    def generate_sine_wave_hz_dbm(self, frequency:int,amplitude:float,*args,**kwargs):
-        """sets the frequency and amplitude of the srs  
-        """
-        self.change_frequency(frequency, unit="Hz")
 
-        match self.channel:
-            case SG380Channels.n_type:
-                self.change_amplitude_n_type(amplitude)
-            case SG380Channels.bnc:
-                self.change_amplitude_bnc(amplitude)
-    
-    def set_frequency_hz(self,frequency:int):
+    def generate_sine_wave_hz_dbm(self,frequency:int,amplitude:float,*args,**kwargs):
         """sets the frequency of the srs 
         """
+        self.set_power_dbm(amplitude)
         self.change_frequency(frequency, unit="Hz")
    
     def get_frequency_hz(self)->float:
@@ -160,7 +151,7 @@ class SG380(SignalGenerator):
         """
         return self.get_frequency_list()
 
-    def iterate_frequency(self):
+    def iterate(self):
         """This will iterate through the loaded frequency list essentially setting the current frequency to the triggered values
         """
         self.trigger_list_item()
@@ -292,4 +283,3 @@ class SG380(SignalGenerator):
         else:
             raise Exception("Failed to confirm srs connection id may be incorrect")
         
-

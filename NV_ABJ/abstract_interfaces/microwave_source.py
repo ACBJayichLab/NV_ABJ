@@ -1,14 +1,14 @@
 from abc import ABCMeta, abstractmethod
 from NV_ABJ import ConnectedDevice
 
-class SignalGenerator(ConnectedDevice,metaclass=ABCMeta):
+class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
     """This is a class for a signal generator not limited to but used for control of the RF supplied to the NV and allows for a general 
     implementation for the singal frequency generators 
     """
 
     @property
     @abstractmethod
-    def frequency_range_hz(self)->tuple:
+    def frequency_range_hz(self)->tuple[float,float]:
         """This is meant to take in the frequency range of the device as a tuple in Hz
         """
         ...
@@ -86,7 +86,7 @@ class SignalGenerator(ConnectedDevice,metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def iterate_frequency(self):
+    def iterate(self):
         """This will iterate through the loaded frequency list essentially setting the current frequency to the triggered values
         """
         pass

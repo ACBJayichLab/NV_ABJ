@@ -118,7 +118,7 @@ class SpbiclPulseBlaster(PulseGenerator):
         empty_sequence = ""
 
         if not self._locked_commands:
-            response = self.load_sequence(sequence=empty_sequence)
+            response = self.load(sequence=empty_sequence)
             return response   
         
         else:
