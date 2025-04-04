@@ -15,7 +15,7 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
     
     @property
     @abstractmethod
-    def power_range_dbm(self)->tuple:
+    def power_range_dbm(self)->tuple[float,float]:
         """This takes in the power range of the device that you are interfacing with as a tuple in dBm
         """
         ...
@@ -33,16 +33,6 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
     # every signal generator needs to have these commands 
     @abstractmethod
     def generate_sine_wave_hz_dbm(self,frequency:int,amplitude:float,*args,**kwargs):
-        """Sets a singal frequency on the device in question in Hz
-        and the amplitude of the sine wave in dbm
-
-        Args:
-            frequency (float): Frequency in Hz
-            amplitude (float): Power in dBm   
-        """
-        pass
-    @abstractmethod
-    def set_frequency_hz(self, frequency:int):
         """Sets a singal frequency on the device in question in Hz
 
         Args:
