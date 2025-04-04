@@ -1,8 +1,6 @@
 __all__ = ["SequenceDevice","SequenceSubset","Sequence","SequenceDeviceConfiguration"]
 
 from dataclasses import dataclass
-from NV_ABJ import seconds
-import numpy as np
 
 @dataclass(frozen=True)
 class SequenceDeviceConfiguration:

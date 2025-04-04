@@ -4,9 +4,9 @@ import subprocess
 from tempfile import TemporaryDirectory
 from os.path import join
 
-from NV_ABJ.abstract_device_interfaces.pulse_generator import PulseGenerator
-from NV_ABJ.sequence_generation.sequence_generation import *
-from NV_ABJ.units import seconds
+from NV_ABJ import seconds 
+from NV_ABJ.abstract_interfaces.pulse_generator import PulseGenerator
+from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import *
 
 class SpbiclPulseBlaster(PulseGenerator):
     def __init__(self,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
@@ -165,123 +165,93 @@ class SpbiclPulseBlaster(PulseGenerator):
             str: This returns a string that can be used to load the sequence into the pulse blaster 
             This command is going to commonly be followed by load(sequence) they are kept separate because load 
             is a more general function and you may want to generate sequences and save them without 
-        """
-
-        def generate_line(binary_address:int,operator=111)->str:
-            """generates the bit formulation
-            Args:
-                binary_address (int): address line
-            Returns:
-                str: The line made from address and duration
-            """
-
-            # Generate the bit line
-            address_line = str(operator)+str(binary_address).zfill(self.available_ports-2)
-            return address_line
-
-
+        """       
+        sequence_text = ""
         # Gets a linear time sequence from the sequence generation class
-        linear_time_devices, step_times_ns = sequence_class.linear_time_sequence()
-        
-        seq_length = len(step_times_ns)-2 # Checks if the length of a sequence is at least 2 for iteration or 1 for not iteration
+        instructions, sub_routines = sequence_class.instructions(wrapped=True,allow_subroutine=False)
+        sequence_length = len(instructions)-1
 
-        # If we have multiple instructions 
-        if seq_length > 0:
+        for ind, seq in enumerate(instructions):
+            # Checks if it is a
+            if not instructions[seq][0]:
+                duration_ns = instructions[seq][1][0]
+                device_addresses = instructions[seq][1][1]
             
-            # If we are looping we want to wrap the starting conditions into the end loops to make sure it is continuous 
-            if sequence_class.loop_end_condition:
+                if duration_ns > self.maximum_step_time_s/seconds.ns.value:
+                    raise EncodingWarning(f"Can not enter a time longer than the pulse blaster maximum step time {self.maximum_step_time_s}")
+
+                binary = 0
+                for dev_add in device_addresses:
+                    binary = binary + pow(10,dev_add)              
+
+                address_line = str(111)+str(binary).zfill(self.available_ports-2)
+
+                if sequence_length == 1:
+                    return f"Start: 0b{address_line}, {duration_ns} ns, branch, Start"
                 
-                # Finding the time the last devices were turned on 
-                final_time_on = 0
-                for device_address in linear_time_devices:
-                    if final_time_on < (device_final := max(linear_time_devices[device_address]["on_times_ns"])):
-                        final_time_on = device_final
-                
-                # Finding the devices that were on in the end 
-                devices_on_in_end = set()
-                for device_address in linear_time_devices:
-                    if final_time_on == max(linear_time_devices[device_address]["on_times_ns"]):
-                        devices_on_in_end.add(device_address)
-                
-                # Finding devices that have a delayed on and need to be shifted
-                total_sequence_time = max(step_times_ns) # Maximum time 
-                devices_needing_shift = [] # Devices getting shifted
-                shifted_times = [] # Shifted time for the device to be on 
-                for device in sequence_class._devices:
-                    # If the delay is larger than zero we want to check if it was on in the end 
-                    if device.delayed_to_on_s > 0 and device.address not in devices_on_in_end:
+                else:
+                    if ind == 0 and sequence_length > 0:
+                        line = f"Start: 0b{address_line}, {duration_ns} ns\n"
+                    elif ind == 0 and sequence_length == 0:
+                        line = f"Start: 0b{address_line}, {duration_ns} ns, branch, Start"         
+                    elif ind > 0 and ind < sequence_length:          
+                        line = f"       0b{address_line}, {duration_ns} ns\n"
+                    elif ind == sequence_length:
+                        line = f"       0b{address_line}, {duration_ns} ns, branch, Start"
+                    else:
+                        raise EncodingWarning(f"Could not generate sequence failed with index:{ind}, Sequence Length: {sequence_length}")  
 
-                        # Checking if the device needs to be shifted 
-                        if (initial := min(linear_time_devices[device.address]["on_times_ns"]))< 0:
-                            # If the device was not on we need to add the device to be on at the end but is on before zero 
-                            # we must shift it to the end wrapping the times 
-                            devices_needing_shift.append(device.address)
-                            shifted_times.append(total_sequence_time+initial)
+                sequence_text = sequence_text + line
 
+            # We need to add the sub routines 
+            else:
+                sub_routine = sub_routines[instructions[seq][1]]
+                repetitions = instructions[seq][2]
 
+                sr_len = len(sub_routine)-1
 
-                # For devices that need to be shifted we need to recursively add them in descending order
-                if shifted_times != []:
-                    sorted_shift = zip(*sorted(zip(shifted_times, devices_needing_shift), reverse=False))
+                ind_temp = ind
+
+                for sr_ind,sr in enumerate(sub_routine):
                     
-                    # Starting from the longest shift we want to add devices to the sequence 
-                    for ind, time,device in enumerate(sorted_shift):
-                        for step_time in step_times_ns:
-                            # If the time is greater than step times all steps after will require this device on
-                            
-                            if time >= step_time:
-                                # Checking which devices are on at this step time 
-                                for device_address in linear_time_devices:
-                                    if step_time in linear_time_devices[device_address]["on_times_ns"]:
-                                        linear_time_devices[device_address]["on_times_ns"].add(time)
+                    duration_ns = sr[0]
+                    device_addresses = sr[1]
 
-                # Removing any times from the sequence less than zero
-                for step_time in step_times_ns:
-                    if step_time < 0:
-                        step_times_ns.remove(step_time)
+                    binary = 0
+                    for dev_add in device_addresses:
+                        binary = binary + pow(10,dev_add)
+
+                    if duration_ns > self.maximum_step_time_s/seconds.ns.value:
+                        raise EncodingWarning(f"Can not enter a time longer than the pulse blaster maximum step time for sub sequence {self.maximum_step_time_s}")
+
+                    address_line = str(111)+str(binary).zfill(self.available_ports-2)
+
+
+                    if ind_temp == 0 and sr_ind == 0:
+                        line = f"Start: 0b{address_line}, {duration_ns} ns, loop, {repetitions}\n" 
+                        ind_temp = ind_temp + 1   
+                    
+                    elif ind_temp > 0 and sr_ind == 0:
+                        line = f"       0b{address_line}, {duration_ns} ns, loop, {repetitions}\n"
+
+                    elif ind_temp > 0 and ind < sequence_length and sr_ind > 0 and sr_ind < sr_len:
+                        line = f"       0b{address_line}, {duration_ns} ns\n" 
+
+                    elif ind_temp > 0 and ind < sequence_length and sr_ind == sr_len:
+                        line = f"       0b{address_line}, {duration_ns} ns, end_loop\n" 
+
+                    elif ind_temp == sequence_length and sr_ind == sr_len:
+                        line = f"       0b{address_line}, {duration_ns} ns, end_loop, branch, Start"  
+                    else:
+                        raise EncodingWarning(f"Failed:\n sub routine index:{sr_ind}, sequence_index: {ind},\n sub routine length: {sr_len}, sequence length: {sequence_length}")
+
+
+                    sequence_text = sequence_text + line
             
-
-
-            # This is a list of tuples (binary devices on, duration)
-            sequence_list = []
-
-            for ind,step_time in enumerate(step_times_ns[:-1]):
-                addresses = 0
-                for device in sequence_class._devices:
-                    if step_time in linear_time_devices[device.address]["on_times_ns"]:
-                            addresses = addresses + pow(10,device.address)
-                
-                # Finds the duration by simple subtraction 
-                duration_ns = int(step_times_ns[ind+1]-step_time)
-                
-                # If the duration is longer than the maximum time for a single step it loops adding steps and subtracting the duration 
-                while duration_ns > self.maximum_step_time_s/seconds.ns.value:
-                    duration_ns = int(duration_ns - self.maximum_step_time_s/seconds.ns.value)
-                    # Adding 1 to sequence length so we don't have issues when a value is maxed out on time and is the end of the sequence
-                    sequence_list.append((addresses,int(self.maximum_step_time_s/seconds.ns.value)))
+        return sequence_text
+        
             
-                # Adding the next line to the sequence text and the remainder if there is any from looping 
-                sequence_list.append((addresses,duration_ns))
-
-            # Iterating through the list looking for any repeating phrases 
-            return sequence_list
-
-
-        
-        # If there is only one instruction
-        elif seq_length == 0:
-            # With only one instruction there is no state changes so duration can be the maximum 
-            addresses = 0
-            for device_address in linear_time_devices:
-                    addresses = addresses + pow(10,device_address)
-
-            sequence_text = f"start: 0b{generate_line(addresses)}, {int(self.maximum_step_time_s/seconds.ns.value)} ns, branch, start"
-            return sequence_text
-        
-        # If there are zero lines in the sequence
-        else:
-            raise ValueError("Sequence must contain one or more steps")
-
+      
 
 
 # # # # # ##############################################################################################################

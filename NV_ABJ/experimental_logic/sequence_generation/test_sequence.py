@@ -1,5 +1,5 @@
 import unittest
-from testing_sequence_linear_time import Sequence,SequenceSubset, SequenceDevice, SequenceDeviceConfiguration
+from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import *
 
 DeviceConfigurationUnderTest = SequenceDeviceConfiguration
 SequenceDeviceUnderTest = SequenceDevice
@@ -308,3 +308,44 @@ class TestSequence(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+
+# dev0 = SequenceDevice(config={"address":0,"device_label":"0","delayed_to_on_ns":0},device_status=False)
+# dev1 = SequenceDevice(config={"address":1,"device_label":"1","delayed_to_on_ns":0},device_status=False)
+# dev2 = SequenceDevice(config={"address":2,"device_label":"2","delayed_to_on_ns":0},device_status=False)
+# dev_none = SequenceDevice(config={"address":None,"device_label":"000","delayed_to_on_ns":0},device_status=False)
+
+# sub = SequenceSubset()
+# # sub.add_step(devices = [], duration_ns=2)
+# sub.add_step(devices=[dev0,dev1],duration_ns=10)
+# sub.add_step(devices=[dev0],duration_ns=10)
+# sub.add_step(devices=[dev0,dev1,dev2],duration_ns=10)
+# sub.loop_steps = 5000
+
+# sub2 = SequenceSubset()
+# # sub.add_step(devices = [], duration_ns=2)
+# sub2.add_step(devices=[dev2,dev1],duration_ns=10)
+# sub2.add_step(devices=[dev1],duration_ns=10)
+# sub2.add_step(devices=[dev0,dev1,dev2],duration_ns=10)
+# sub2.loop_steps = 5000
+
+
+# seq = Sequence()
+# # seq.add_sub_sequence(sub)
+# # seq.add_step(devices=[dev0],duration_ns=10)
+# # seq.add_step(devices=[dev1],duration_ns=10)
+# seq.add_step(devices=[dev0,dev1,dev2],duration_ns=10)
+# # seq.add_sub_sequence(sub2)
+# # seq.add_step(devices = [], duration_ns=10)
+
+# import time
+# start = time.time()
+# instructions,sub_routines = seq.instructions(wrapped=True,allow_subroutine=True)
+# print(f"Time took:{(time.time()-start)/60}")
+
+# print(sub_routines)
+
+# for inst in instructions:
+#     print(instructions[inst])
