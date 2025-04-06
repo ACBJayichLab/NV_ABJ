@@ -166,75 +166,112 @@ class SpbiclPulseBlaster(PulseGenerator):
             str: This returns a string that can be used to load the sequence into the pulse blaster 
             This command is going to commonly be followed by load(sequence) they are kept separate because load 
             is a more general function and you may want to generate sequences and save them without 
-        """
-
-        def adding_lines(ind:int,addresses:int,duration:int,seq_length:int,seq_text:str,operator=111)->str:
-            """Used locally to add lines to the sequence 
-            Args:
-                ind (int): what iteration of the loops we are on/ what line on the string we are writing 
-                addresses (int): what binary form of addresses are on
-                duration (int): how long in ns it is for
-                seq_length (int): how long the overall string we are writing is
-                seq_text (str): the string we are writing 
-
-            Returns:
-                str: the sequence text string with the appropriate line added 
-
-            Uses a continuous looping method and (branch to start) and uses continue on every line
-            """
-            addresses = str(operator)+str(addresses).zfill(self.available_ports-2)
-
-            if ind == 0:
-                seq_text = seq_text +f"start: 0b{addresses}, {duration} ns\n"
-            elif(ind > 0 and ind < seq_length):
-                seq_text = seq_text +f"       0b{addresses}, {duration} ns\n"
-            else:
-                seq_text = seq_text +f"       0b{addresses}, {duration} ns, branch, start"
-            
-            return seq_text
-
-
+        """       
+        sequence_text = ""
         # Gets a linear time sequence from the sequence generation class
-        linear_time_devices, step_times_ns = sequence_class.linear_time_sequence()
-        seq_length = len(step_times_ns)-2 # Checks if the length of a sequence is at least 2 for iteration or 1 for not iteration
-        
-        # If we have multiple instructions 
-        if seq_length > 0:
-            sequence_text = ""
-            for ind,step_time in enumerate(step_times_ns[:-1]):
-                addresses = 0
-                for device in sequence_class._devices:
-                    if step_time in linear_time_devices[device.address]["on_times_ns"]:
-                            addresses = addresses + pow(10,device.address)
-                
-                # Finds the duration by simple subtraction 
-                duration_ns = int(step_times_ns[ind+1]-step_time)
-                
-                # If the duration is longer than the maximum time for a single step it loops adding steps and subtracting the duration 
-                while duration_ns > self.maximum_step_time_s/seconds.ns.value:
-                    duration_ns = int(duration_ns - self.maximum_step_time_s/seconds.ns.value)
-                    # Adding 1 to sequence length so we don't have issues when a value is maxed out on time and is the end of the sequence
-                    sequence_text = adding_lines(ind,addresses,int(self.maximum_step_time_s/seconds.ns.value),seq_length+1,sequence_text)
+        instructions, sub_routines = sequence_class.instructions(wrapped=True,allow_subroutine=True)
+        sequence_length = len(instructions)-1
+
+        def addresses_to_line(device_addresses:list):
+            binary = 0
+            for dev_add in device_addresses:
+                binary = binary + pow(10,dev_add)              
+
+            address_line = str(111)+str(binary).zfill(self.available_ports-2)
+            return address_line
+
+        for ind, seq in enumerate(instructions):
             
-                # Adding the next line to the sequence text and the remainder if there is any from looping 
-                sequence_text = adding_lines(ind,addresses,duration_ns,seq_length,sequence_text)
-        
-        # If there is only one instruction
-        elif seq_length == 0:
-            # With only one instruction there is no state changes so duration can be the maximum 
-            addresses = 0
-            for device_address in linear_time_devices:
-                    addresses = addresses + pow(10,device_address)
+            # Checks if it is not a sub routine requiring a more complex process
+            if not instructions[seq][0]:
+                duration_ns = instructions[seq][1][0]
+            
+                address_line = addresses_to_line(device_addresses=instructions[seq][1][1])
 
-            sequence_text = ""
-            # Adds a starting and looping line breaking one instruction into two 
-            sequence_text = adding_lines(0,addresses,int(self.maximum_step_time_s/seconds.ns.value),1,sequence_text)
-            sequence_text = adding_lines(1,addresses,int(self.maximum_step_time_s/seconds.ns.value),1,sequence_text)
-        else:
-            raise ValueError("Sequence must contain one or more steps")
+                if ind == 0:
+                    starting_condition = "Start: "  
+                else:
+                    starting_condition = "       "
 
+                if ind == sequence_length:
+                    end_condition = ", branch, Start"
+                else:
+                    end_condition = ""
+
+                if sequence_length == 0:
+                    duration = self.maximum_step_time_s/seconds.ns.value
+                
+                if duration_ns > self.maximum_step_time_s/seconds.ns.value:
+                    if (remainder_duration := int(duration_ns%(self.maximum_step_time_s/seconds.ns.value))) == 0:
+                        duration = self.maximum_step_time_s/seconds.ns.value
+                        duration_ns = duration_ns - (self.maximum_step_time_s/seconds.ns.value)
+                    else:
+                        duration = remainder_duration
+                else:
+                    duration = duration_ns
+               
+                line = f"{starting_condition}0b{address_line}, {duration} ns{end_condition}\n"
+                sequence_text = sequence_text + line
+
+                while duration_ns > self.maximum_step_time_s/seconds.ns.value:
+                    duration_ns = duration_ns - self.maximum_step_time_s/seconds.ns.value
+                    line = f"       0b{address_line}, {self.maximum_step_time_s/seconds.ns.value} ns\n"
+                    sequence_text = sequence_text + line
+
+            # We need to add the sub routines 
+            else:
+                sub_routine = sub_routines[instructions[seq][1]]
+                repetitions = instructions[seq][2]
+
+                sr_len = len(sub_routine)-1
+
+                for sr_ind,sr in enumerate(sub_routine):
+                    
+                    duration_ns = sr[0]
+
+                    address_line = addresses_to_line(device_addresses=sr[1])
+
+                    if ind == 0 and sr_ind == 0:
+                        starting_condition = "Start: "
+                    else:
+                        starting_condition = "       "
+
+                    if sr_ind == 0:
+                        end_condition = f", loop, {repetitions}"
+                    else:
+                        end_condition = ""
+                    
+                    if sr_ind == sr_len:
+                        end_condition = ", end_loop"
+
+                    if ind == sequence_length and sr_ind == sr_len:
+                        end_condition = end_condition + ", branch, Start"
+
+                    if sequence_length == 0:
+                        duration = self.maximum_step_time_s/seconds.ns.value
+                    
+                    if duration_ns > self.maximum_step_time_s/seconds.ns.value:
+                        if (remainder_duration := int(duration_ns%(self.maximum_step_time_s/seconds.ns.value))) == 0:
+                            duration = self.maximum_step_time_s/seconds.ns.value
+                            duration_ns = duration_ns - (self.maximum_step_time_s/seconds.ns.value)
+                        else:
+                            duration = remainder_duration
+                    else:
+                        duration = duration_ns
+
+                
+                    line = f"{starting_condition}0b{address_line}, {duration} ns{end_condition}\n"
+                    sequence_text = sequence_text + line
+
+                    while duration_ns > self.maximum_step_time_s/seconds.ns.value:
+                        duration_ns = duration_ns - self.maximum_step_time_s/seconds.ns.value
+                        line = f"       0b{address_line}, {self.maximum_step_time_s/seconds.ns.value} ns\n"
+                        sequence_text = sequence_text + line
+
+            
         return sequence_text
-
+        
+ 
 
 # # # # # ##############################################################################################################
 # # # # # #     _    _
@@ -244,7 +281,14 @@ class SpbiclPulseBlaster(PulseGenerator):
 # # # # # #  ./        \.
 # # # # # # ( .        , )
 # # # # # #  \ \_\\//_/ /
-# # # # # #   ~~  ~~  ~~ The frog of linear timing 
+# # # # # #   ~~  ~~  ~~ The frog of linear timing
+# # # # # #
+# # # # # #
+# # # # # #     .----.   @   @
+# # # # # #    / .-"-.`.  \v/
+# # # # # #    | | '\ \ \_/ )
+# # # # # #  ,-\ `-.' /.'  /
+# # # # # # '---`----'----' Art by Hayley Jane Wakenshaw
 # # # # # ##############################################################################################################
 
 from NV_ABJ.experimental_logic.sequence_generation import SequenceDevice
