@@ -1,4 +1,4 @@
-__all__ = ["CacliJpe","CacliVersion"]
+__all__ = ["CacliJpeCadm2","CacliVersion"]
 """
 This is a class that is based on interactions with the provided Cacli.exe file from JPE in order to use this you must add the location of the Cacli.exe
 folder to the system environment variables for example if you saved it to "C:" you would add "C:" to the system variables path
