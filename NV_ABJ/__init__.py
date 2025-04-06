@@ -21,6 +21,7 @@ from NV_ABJ.abstract_interfaces.pulse_generator import PulseGenerator
 # Common Experimental Logic
 ###################################################################################################################
 from NV_ABJ.experimental_logic.confocal_scanning import *
-from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import *
+from NV_ABJ.experimental_logic.sequence_generation import *
+
 
 

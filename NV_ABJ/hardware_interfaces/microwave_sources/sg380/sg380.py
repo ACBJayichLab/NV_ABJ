@@ -79,13 +79,13 @@ class SG380(MicrowaveSource):
     # Implementation of the abstract signal generator functions 
     #########################################################################################################################################################################    
     @property
-    def frequency_range_hz(self)->tuple:
+    def frequency_range_hz(self):
         """This is meant to take in the frequency range of the device as a tuple in Hz
         """
         return self._frequency_range_hz
     
     @property
-    def power_range_dbm(self)->tuple:
+    def power_range_dbm(self):
         """This takes in the power range of the device that you are interfacing with as a tuple in dBm
         """
         return self._power_range_dbm
@@ -139,14 +139,14 @@ class SG380(MicrowaveSource):
             case SG380Channels.bnc:
                 self.bnc_off()
 
-    def load_frequency_list_hz(self,frequency_list:list):
+    def load_frequency_list_hz(self,frequency_list):
         """This is meant to be a command to load a frequency list to a device if the device can't do this it can be implemented using the set frequency
             and saving the list as a property to the class triggering you can just iterate through the list 
         """
         self.send_frequency_list(frequency_list)
         self.trigger_list_item() # Goes to the first entrance on the list
 
-    def get_frequency_list_hz(self)->list:
+    def get_frequency_list_hz(self):
         """ Returns a list of the currently loaded frequencies 
         """
         return self.get_frequency_list()

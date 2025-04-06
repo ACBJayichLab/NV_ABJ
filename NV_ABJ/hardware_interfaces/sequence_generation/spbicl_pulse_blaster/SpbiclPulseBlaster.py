@@ -1,12 +1,13 @@
-__all__ = ["SpbiclPulseBlaster"]
-
 import subprocess
 from tempfile import TemporaryDirectory
 from os.path import join
 
-from NV_ABJ import seconds 
-from NV_ABJ.abstract_interfaces.pulse_generator import PulseGenerator
-from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import *
+# Importing abstract class and units 
+from NV_ABJ import PulseGenerator,seconds
+
+# Importing sequence 
+from NV_ABJ.experimental_logic.sequence_generation import Sequence
+
 
 class SpbiclPulseBlaster(PulseGenerator):
     def __init__(self,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
@@ -290,3 +291,25 @@ class SpbiclPulseBlaster(PulseGenerator):
 # # # # # # '---`----'----' Art by Hayley Jane Wakenshaw
 # # # # # ##############################################################################################################
 
+from NV_ABJ.experimental_logic.sequence_generation import SequenceDevice
+
+
+sequence_generator = SpbiclPulseBlaster()
+
+microwave_switch = SequenceDevice(address=2,
+                                  device_label="Microwaves")
+
+apd_trigger = SequenceDevice(address=1,
+                             device_label="APD")
+
+aom_trigger = SequenceDevice(address=0,
+                             device_label="AOM")
+
+sequence_generator.clear()
+
+# microwave_switch.device_status = False
+
+# apd_trigger.device_status = False
+# aom_trigger.device_status = True
+
+# sequence_generator.update_devices([microwave_switch,apd_trigger,aom_trigger])
