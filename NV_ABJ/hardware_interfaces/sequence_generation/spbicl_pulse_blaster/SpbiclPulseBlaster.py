@@ -168,40 +168,54 @@ class SpbiclPulseBlaster(PulseGenerator):
         """       
         sequence_text = ""
         # Gets a linear time sequence from the sequence generation class
-        instructions, sub_routines = sequence_class.instructions(wrapped=True,allow_subroutine=False)
+        instructions, sub_routines = sequence_class.instructions(wrapped=True,allow_subroutine=True)
         sequence_length = len(instructions)-1
 
+        def addresses_to_line(device_addresses:list):
+            binary = 0
+            for dev_add in device_addresses:
+                binary = binary + pow(10,dev_add)              
+
+            address_line = str(111)+str(binary).zfill(self.available_ports-2)
+            return address_line
+
         for ind, seq in enumerate(instructions):
-            # Checks if it is a
+            
+            # Checks if it is not a sub routine requiring a more complex process
             if not instructions[seq][0]:
                 duration_ns = instructions[seq][1][0]
-                device_addresses = instructions[seq][1][1]
             
-                if duration_ns > self.maximum_step_time_s/seconds.ns.value:
-                    raise EncodingWarning(f"Can not enter a time longer than the pulse blaster maximum step time {self.maximum_step_time_s}")
+                address_line = addresses_to_line(device_addresses=instructions[seq][1][1])
 
-                binary = 0
-                for dev_add in device_addresses:
-                    binary = binary + pow(10,dev_add)              
-
-                address_line = str(111)+str(binary).zfill(self.available_ports-2)
-
-                if sequence_length == 1:
-                    return f"Start: 0b{address_line}, {duration_ns} ns, branch, Start"
-                
+                if ind == 0:
+                    starting_condition = "Start: "  
                 else:
-                    if ind == 0 and sequence_length > 0:
-                        line = f"Start: 0b{address_line}, {duration_ns} ns\n"
-                    elif ind == 0 and sequence_length == 0:
-                        line = f"Start: 0b{address_line}, {duration_ns} ns, branch, Start"         
-                    elif ind > 0 and ind < sequence_length:          
-                        line = f"       0b{address_line}, {duration_ns} ns\n"
-                    elif ind == sequence_length:
-                        line = f"       0b{address_line}, {duration_ns} ns, branch, Start"
-                    else:
-                        raise EncodingWarning(f"Could not generate sequence failed with index:{ind}, Sequence Length: {sequence_length}")  
+                    starting_condition = "       "
 
+                if ind == sequence_length:
+                    end_condition = ", branch, Start"
+                else:
+                    end_condition = ""
+
+                if sequence_length == 0:
+                    duration = self.maximum_step_time_s/seconds.ns.value
+                
+                if duration_ns > self.maximum_step_time_s/seconds.ns.value:
+                    if (remainder_duration := int(duration_ns%(self.maximum_step_time_s/seconds.ns.value))) == 0:
+                        duration = self.maximum_step_time_s/seconds.ns.value
+                        duration_ns = duration_ns - (self.maximum_step_time_s/seconds.ns.value)
+                    else:
+                        duration = remainder_duration
+                else:
+                    duration = duration_ns
+               
+                line = f"{starting_condition}0b{address_line}, {duration} ns{end_condition}\n"
                 sequence_text = sequence_text + line
+
+                while duration_ns > self.maximum_step_time_s/seconds.ns.value:
+                    duration_ns = duration_ns - self.maximum_step_time_s/seconds.ns.value
+                    line = f"       0b{address_line}, {self.maximum_step_time_s/seconds.ns.value} ns\n"
+                    sequence_text = sequence_text + line
 
             # We need to add the sub routines 
             else:
@@ -210,49 +224,53 @@ class SpbiclPulseBlaster(PulseGenerator):
 
                 sr_len = len(sub_routine)-1
 
-                ind_temp = ind
-
                 for sr_ind,sr in enumerate(sub_routine):
                     
                     duration_ns = sr[0]
-                    device_addresses = sr[1]
 
-                    binary = 0
-                    for dev_add in device_addresses:
-                        binary = binary + pow(10,dev_add)
+                    address_line = addresses_to_line(device_addresses=sr[1])
 
-                    if duration_ns > self.maximum_step_time_s/seconds.ns.value:
-                        raise EncodingWarning(f"Can not enter a time longer than the pulse blaster maximum step time for sub sequence {self.maximum_step_time_s}")
-
-                    address_line = str(111)+str(binary).zfill(self.available_ports-2)
-
-
-                    if ind_temp == 0 and sr_ind == 0:
-                        line = f"Start: 0b{address_line}, {duration_ns} ns, loop, {repetitions}\n" 
-                        ind_temp = ind_temp + 1   
-                    
-                    elif ind_temp > 0 and sr_ind == 0:
-                        line = f"       0b{address_line}, {duration_ns} ns, loop, {repetitions}\n"
-
-                    elif ind_temp > 0 and ind < sequence_length and sr_ind > 0 and sr_ind < sr_len:
-                        line = f"       0b{address_line}, {duration_ns} ns\n" 
-
-                    elif ind_temp > 0 and ind < sequence_length and sr_ind == sr_len:
-                        line = f"       0b{address_line}, {duration_ns} ns, end_loop\n" 
-
-                    elif ind_temp == sequence_length and sr_ind == sr_len:
-                        line = f"       0b{address_line}, {duration_ns} ns, end_loop, branch, Start"  
+                    if ind == 0 and sr_ind == 0:
+                        starting_condition = "Start: "
                     else:
-                        raise EncodingWarning(f"Failed:\n sub routine index:{sr_ind}, sequence_index: {ind},\n sub routine length: {sr_len}, sequence length: {sequence_length}")
+                        starting_condition = "       "
 
+                    if sr_ind == 0:
+                        end_condition = f", loop, {repetitions}"
+                    else:
+                        end_condition = ""
+                    
+                    if sr_ind == sr_len:
+                        end_condition = ", end_loop"
 
+                    if ind == sequence_length and sr_ind == sr_len:
+                        end_condition = end_condition + ", branch, Start"
+
+                    if sequence_length == 0:
+                        duration = self.maximum_step_time_s/seconds.ns.value
+                    
+                    if duration_ns > self.maximum_step_time_s/seconds.ns.value:
+                        if (remainder_duration := int(duration_ns%(self.maximum_step_time_s/seconds.ns.value))) == 0:
+                            duration = self.maximum_step_time_s/seconds.ns.value
+                            duration_ns = duration_ns - (self.maximum_step_time_s/seconds.ns.value)
+                        else:
+                            duration = remainder_duration
+                    else:
+                        duration = duration_ns
+
+                
+                    line = f"{starting_condition}0b{address_line}, {duration} ns{end_condition}\n"
                     sequence_text = sequence_text + line
+
+                    while duration_ns > self.maximum_step_time_s/seconds.ns.value:
+                        duration_ns = duration_ns - self.maximum_step_time_s/seconds.ns.value
+                        line = f"       0b{address_line}, {self.maximum_step_time_s/seconds.ns.value} ns\n"
+                        sequence_text = sequence_text + line
+
             
         return sequence_text
         
-            
-      
-
+ 
 
 # # # # # ##############################################################################################################
 # # # # # #     _    _
@@ -262,6 +280,13 @@ class SpbiclPulseBlaster(PulseGenerator):
 # # # # # #  ./        \.
 # # # # # # ( .        , )
 # # # # # #  \ \_\\//_/ /
-# # # # # #   ~~  ~~  ~~ The frog of linear timing 
+# # # # # #   ~~  ~~  ~~ The frog of linear timing
+# # # # # #
+# # # # # #
+# # # # # #     .----.   @   @
+# # # # # #    / .-"-.`.  \v/
+# # # # # #    | | '\ \ \_/ )
+# # # # # #  ,-\ `-.' /.'  /
+# # # # # # '---`----'----' Art by Hayley Jane Wakenshaw
 # # # # # ##############################################################################################################
 

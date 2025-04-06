@@ -199,6 +199,11 @@ class Sequence:
                     for device in devices_with_delays_new_sorted:
 
                         device_time = time_ns-device.delayed_to_on_ns
+
+                        # Checks if the delay time is overlapping with when it was previously on
+                        if len(sequence_devices[device.address]["on_times_ns"]) > 0 and max(sequence_devices[device.address]["on_times_ns"]) > device_time:
+                            raise ValueError("The devices delayed on overlaps with when it was previously on the duration")
+
                         sequence_devices[device.address]["on_times_ns"].add(device_time)
                         step_times_ns.add(device_time)
 
