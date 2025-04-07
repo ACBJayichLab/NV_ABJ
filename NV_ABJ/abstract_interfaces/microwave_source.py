@@ -50,6 +50,15 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def set_frequency_hz(self,frequency_hz:int):
+        """Sets the signal frequency in hz
+
+        Args:
+            frequency_hz (float): no return
+        """
+        pass
+
+    @abstractmethod
     def turn_on_signal(self):
         """Turns on the signal source this will map to the specific port in question
           and does not turn on the device just the signal

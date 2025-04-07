@@ -95,7 +95,13 @@ class SG380(MicrowaveSource):
         """
         self.set_power_dbm(amplitude)
         self.change_frequency(frequency, unit="Hz")
-   
+        self.turn_on_signal()
+    
+    def set_frequency_hz(self,frequency_hz:int):
+        """Sets the signal frequency in Hz 
+        """
+        self.change_frequency(frequency_hz, unit="Hz")
+
     def get_frequency_hz(self)->float:
         """sets the frequency of the srs 
         """
@@ -282,4 +288,3 @@ class SG380(MicrowaveSource):
             return response
         else:
             raise Exception("Failed to confirm srs connection id may be incorrect")
-        
