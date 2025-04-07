@@ -133,7 +133,7 @@ class ConfocalControls:
         
         return photon_counts,np.array(z_positions)
     
-    def tracking(self,x_position:float,y_position:float,z_position:float)->tuple[float,float,float]:
+    def tracking(self,x_position:float,y_position:float,z_position:float)->tuple[float,float,float,NDArray,NDArray]:
         xy_span = self.tracking_xy_span
         z_span = self.tracking_z_span
         dwell_time_s = self.tracking_dwell_time_s
@@ -158,6 +158,6 @@ class ConfocalControls:
 
         z_pos = z_positions[np.argmax(z_1d_scan)]
 
-        return x_pos,y_pos,z_pos
+        return x_pos,y_pos,z_pos,xy_2d_scan,z_1d_scan
     
 
