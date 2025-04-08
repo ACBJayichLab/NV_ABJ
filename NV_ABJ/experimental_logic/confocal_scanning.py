@@ -8,7 +8,7 @@ from NV_ABJ import ScannerSingleAxis, PhotonCounter
 
 class ConfocalControls:
     def __init__(self,scanner_x:ScannerSingleAxis,scanner_y:ScannerSingleAxis,scanner_z:ScannerSingleAxis,photon_counter:PhotonCounter,
-                 tracking_xy_span:float = 3e-6,tracking_z_span:float = 3e-6,tracking_dwell_time_s:float = 5e-3,tracking_xy_number_of_points:int = 10,tracking_z_number_of_points:int = 20):
+                 tracking_xy_span:float = 1.5e-6,tracking_z_span:float = 3e-6,tracking_dwell_time_s:float = 5e-3,tracking_xy_number_of_points:int = 10,tracking_z_number_of_points:int = 20):
         self.scanner_x = scanner_x
         self.scanner_y = scanner_y
         self.scanner_z = scanner_z
@@ -88,8 +88,7 @@ class ConfocalControls:
             # Resetting back to original z position
             z_con.set_position_m(z_original)
 
-        # xy_counts = np.rot90(xy_counts)
-        # xy_counts = xy_counts.transpose()
+        xy_counts = np.rot90(xy_counts)
 
         return xy_counts,np.array(x_positions),np.array(y_positions)
     
@@ -151,13 +150,14 @@ class ConfocalControls:
 
         row_index, col_index = np.unravel_index(flat_index, xy_2d_scan.shape)
 
-        x_pos = x_positions[row_index]
-        y_pos = y_positions[col_index]
+        x_pos = x_positions[col_index]
+        y_pos = y_positions[xy_number_of_points - row_index - 1]
 
         z_1d_scan, _ = self.z_scan(dwell_time_s,x_pos,y_pos,z_positions)
 
         z_pos = z_positions[np.argmax(z_1d_scan)]
 
-        return x_pos,y_pos,z_pos,xy_2d_scan,z_1d_scan
-    
+        return x_pos,y_pos,z_pos,xy_2d_scan,z_1d_scan,x_positions,y_positions,z_positions
+
+
 

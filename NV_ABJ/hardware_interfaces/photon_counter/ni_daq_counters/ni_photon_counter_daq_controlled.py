@@ -233,3 +233,4 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
                        Port: {self.port},
                        Timeout Time (s):{self.timeout_waiting_for_data_s}"""
         return response
+

@@ -116,7 +116,7 @@ class SpbiclPulseBlaster(PulseGenerator):
             int: This is zero that indicates correct loading and -1 if it failed to load to the device other errors may have different numbers
        
         """
-        empty_sequence = ""
+        empty_sequence = "label: 0b0000 0000 0000 0000 0000 0000, 500 ms, branch, label"
 
         if not self._locked_commands:
             response = self.load(sequence=empty_sequence)
@@ -145,8 +145,12 @@ class SpbiclPulseBlaster(PulseGenerator):
             for dev in devices:
                 if dev.device_status:
                     devices_on.append(dev)
-            seq.add_step(devices=devices_on, duration=1)
+            seq.add_step(devices=devices_on, duration_ns=1e9)
             seq_text = self.generate_sequence(seq)
+
+            # If no devices are on we want to clear the output
+            if len(devices_on) == 0:
+                self.clear()
 
             self.load(sequence=seq_text)
             response = self.start()
