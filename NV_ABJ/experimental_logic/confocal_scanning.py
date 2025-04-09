@@ -22,7 +22,18 @@ class ConfocalControls:
         self.tracking_z_number_of_points = tracking_z_number_of_points
 
 
+    def set_position_m(self,x_position:float,y_position:float,z_position:float)->None:
+        """Sets the position of the confocal based on the inputs
 
+        Args:
+            x_position (float): position the x axis is going to be set to  
+            y_position (float): position the y axis is going to be set to  
+            z_position (float): position the z axis is going to be set to  
+        """
+        with self.scanner_x as x_con, self.scanner_y as y_con, self.scanner_z as z_con:
+            x_con.set_position_m(x_position)
+            y_con.set_position_m(y_position)
+            z_con.set_position_m(z_position)
 
 
     def xy_scan(self,dwell_time_s:float,x_positions:NDArray,y_positions:NDArray,z_position:float)-> tuple[NDArray,NDArray,NDArray]:
