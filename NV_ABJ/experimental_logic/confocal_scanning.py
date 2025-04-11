@@ -36,7 +36,7 @@ class ConfocalControls:
             z_con.set_position_m(z_position)
 
 
-    def xy_scan(self,dwell_time_s:float,x_positions:NDArray,y_positions:NDArray,z_position:float)-> tuple[NDArray,NDArray,NDArray]:
+    def xy_scan(self,dwell_time_s:float,x_positions:NDArray,y_positions:NDArray,z_position:float,*args,**kwargs)-> tuple[NDArray,NDArray,NDArray]:
         """An xy scan has the same z height for all points and translates to the x and y positions. This instance of the xy 
         scan iterates between scanning forward and backward so there is no sudden movement to the confocal. The arrays from 
         x and y when added will be sorted to ensure the locations are sequential. 
@@ -78,7 +78,6 @@ class ConfocalControls:
             # Iterates through y setting the position once per line 
             for ind_y,y_loc in enumerate(y_positions):
                 y_con.set_position_m(y_loc)
-
                 # Flips the even and odd rows so we don't have jumps going back and forth on the x axis 
                 if ind_y%2 == 0:
                     for ind_x,x_loc in enumerate(x_positions):
@@ -143,7 +142,7 @@ class ConfocalControls:
         
         return photon_counts,np.array(z_positions)
     
-    def tracking(self,x_position:float,y_position:float,z_position:float)->tuple[float,float,float,NDArray,NDArray]:
+    def tracking(self,x_position:float,y_position:float,z_position:float)->tuple[float,float,float,tuple[NDArray,NDArray,NDArray,NDArray,NDArray]]:
         xy_span = self.tracking_xy_span
         z_span = self.tracking_z_span
         dwell_time_s = self.tracking_dwell_time_s
@@ -168,7 +167,7 @@ class ConfocalControls:
 
         z_pos = z_positions[np.argmax(z_1d_scan)]
 
-        return x_pos,y_pos,z_pos,xy_2d_scan,z_1d_scan,x_positions,y_positions,z_positions
+        return x_pos,y_pos,z_pos,(xy_2d_scan,z_1d_scan,x_positions,y_positions,z_positions)
 
 
 
