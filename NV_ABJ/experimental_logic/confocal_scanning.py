@@ -135,7 +135,7 @@ class ConfocalControls:
             # Iterating over all desired z positions 
             for ind_z,z_loc in enumerate(z_positions):
                 z_con.set_position_m(z_loc)
-                photon_counts[ind_z] = pc.get_counts_raw(dwell_time_s)
+                photon_counts[ind_z] = pc.get_counts_per_second(dwell_time_s)
 
             # Resetting back to original z position
             z_con.set_position_m(z_original)

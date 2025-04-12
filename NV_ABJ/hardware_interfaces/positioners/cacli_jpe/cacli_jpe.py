@@ -80,12 +80,11 @@ class CacliJpeCadm2(PositionerSingleAxis):
         temperature_kelvin = self.temperature_kelvin
         frequency_hz = self.frequency_hz
         relative_step_size = self.relative_step_size_percent
-        trqfr = self.torque_factor
         version = self.cacli_version
 
         
-        if trqfr is int and trqfr <=30 and trqfr >= 1:
-            self.torque_factor = trqfr
+        if self.torque_factor <=30 and self.torque_factor >= 1:
+            trqfr = self.torque_factor
         else:
             raise ValueError(f"TRQFR must be set between 1 and 30  as well as being an integer you entered {trqfr}")
 
@@ -134,22 +133,21 @@ class CacliJpeCadm2(PositionerSingleAxis):
     # Base Commands 
     #########################################################################################################################################################################    
     def cacli_command(self,command,retry_after_failure=False):
-        number_attempts = self._device_configuration_class.number_of_attempts
-        for n in range(number_attempts):
+        for n in range(self.number_of_attempts):
             try:
                 p = Popen(command.split(" "), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-                output, err = p.communicate(b"input data that is passed to subprocess' stdin",timeout=self._device_configuration_class.time_out)
+                output, err = p.communicate(b"input data that is passed to subprocess' stdin",timeout=self.time_out)
                 return output.decode("utf-8")
             except:
                 if retry_after_failure:
-                    time.sleep(self._device_configuration_class.delay_between_attempts_s)
+                    time.sleep(self.delay_between_attempts_s)
                 else:
                     # There is a error with certain commands like MOV for newer CLI programs by JPE that means the command line may not receive an exit to new line 
                     # This means that it will never time out because it maintains a open line so if we want to continue this must be timed out 
                     # This is unfortunately not something we are likely able to fix 
                     return -1
                 
-        raise Exception(f"Failed to execute {command} after {number_attempts} attempts")
+        raise Exception(f"Failed to execute {command} after {self.number_of_attempts} attempts")
         
     def check_cacli_connection(self):
         
@@ -159,7 +157,7 @@ class CacliJpeCadm2(PositionerSingleAxis):
         response = self.cacli_command(command, retry_after_failure=True)
         
         # check if controller id is connected 
-        if self._device_configuration_class.piezo_driver_target in response:
+        if self.piezo_driver_target in response:
             target_connected = True
         else:
             target_connected = False
