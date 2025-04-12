@@ -1,5 +1,15 @@
+__all__ = ["MicrowaveSource","MicrowaveSourceConfiguration"]
+
 from abc import ABCMeta, abstractmethod
-from NV_ABJ import ConnectedDevice
+from NV_ABJ.abstract_interfaces.connected_device import ConnectedDevice
+import numpy.typing as npt
+import numpy as np
+from dataclasses import dataclass
+
+@dataclass
+class MicrowaveSourceConfiguration:
+    frequency_range_hz:tuple[float,float]
+    amplitude_range_dbm:tuple[float,float]
 
 class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
     """This is a class for a signal generator not limited to but used for control of the RF supplied to the NV and allows for a general 
@@ -9,83 +19,55 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
     @property
     @abstractmethod
     def frequency_range_hz(self)->tuple[float,float]:
-        """This is meant to take in the frequency range of the device as a tuple in Hz
+        """This is the frequency range that the prime sinusoidal rf is able to generate in 
+
+        Returns:
+            tuple[float,float]: (minimum frequency, maximum frequency)
         """
-        ...
-    
+
     @property
     @abstractmethod
-    def power_range_dbm(self)->tuple[float,float]:
-        """This takes in the power range of the device that you are interfacing with as a tuple in dBm
-        """
-        ...
-    @abstractmethod
-    def get_frequency_hz(self)->int:
-        """Returns the frequency of the signal generator in Hz
-        """
-        ...
-    @abstractmethod
-    def get_power_dbm(self)->float:
-        """Returns the power of the signal generator in dBm
-        """
-        ...
+    def amplitude_range_dbm(self)->tuple[float,float]:
+        """This is the amplitude range that the prime sinusoidal rf is able to generate in 
 
-    # every signal generator needs to have these commands 
-    @abstractmethod
-    def generate_sine_wave_hz_dbm(self,frequency:int,amplitude:float,*args,**kwargs):
-        """Sets a singal frequency on the device in question in Hz
-
-        Args:
-            frequency (float): no return 
+        Returns:
+            tuple[float,float]: (minimum amplitude, maximum amplitude)
         """
-        pass
+
 
     @abstractmethod
-    def set_power_dbm(self,power:float):
-        """Sets the signal power in dBm 
+    def prime_sinusoidal_rf(self,frequency_list_hz:npt.NDArray[np.float64],
+                        rf_amplitude_dbm:npt.NDArray[np.float64],
+                        *args,**kwargs):
+        """This is a generalized function that is meant to allow for an experimental signal generation this 
+        is meant to be implemented so the experimental logic for a cwesr, pulsed esr, or tau sweep will work properly.
+        Not all actions need to be completed by the device but these are the expected inputs to constrain an arbitrary 
+        waveform to the correct sinusoidal signal. This priming is not meant to start the signal but it is meant to queue
+        up the frequency list for operation 
 
-        Args:
-            power (float): no return
-        """
-        pass
-
-    @abstractmethod
-    def set_frequency_hz(self,frequency_hz:int):
-        """Sets the signal frequency in hz
-
-        Args:
-            frequency_hz (float): no return
+        A primed signal means that when a external trigger is applied to the device or device pair it will play the requested frequency 
+        - For the SRS SG384 this means the signal is turned on and a microwave switch is expected to be present 
+        - For a Keysight AWG the duration is added and we expect the sequence generator to trigger it on for a preset duration 
+       
+         Args:
+            frequency_list_hz (npt.NDArray[np.float64]): A floating point numpy array that consists of the frequency in Hz 
+            rf_amplitude_dbm (npt.NDArray[np.float64]): A floating point numpy array of the amplitude of the un-modulated sine wave dBm
         """
         pass
 
     @abstractmethod
     def turn_on_signal(self):
-        """Turns on the signal source this will map to the specific port in question
-          and does not turn on the device just the signal
+        """This turns on the signal source as a continuous operation 
         """
-        pass
+        pass 
 
     @abstractmethod
     def turn_off_signal(self):
         """This turns off the signal source and will not turn off the device 
         """
-        pass 
-    
-    # these will likely be compound commands  
+        pass   
     @abstractmethod
-    def load_frequency_list_hz(self,frequency_list:list):
-        """This is meant to be a command to load a frequency list to a device if the device can't do this it can be implemented using the set frequency
-            and saving the list as a property to the class triggering you can just iterate through the list 
-        """
-        pass
-    @abstractmethod
-    def get_frequency_list_hz(self)->list:
-        """returns the frequency list currently loaded 
-        """
-        ...
-
-    @abstractmethod
-    def iterate(self):
+    def iterate_next_waveform(self):
         """This will iterate through the loaded frequency list essentially setting the current frequency to the triggered values
         """
         pass

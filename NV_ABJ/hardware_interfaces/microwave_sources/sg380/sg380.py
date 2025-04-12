@@ -3,10 +3,11 @@ __all__ = ["SG380Channels","SG380"]
 # importing third party modules 
 import pyvisa
 from enum import IntEnum
+import numpy.typing as npt
+import numpy as np
 
 # Importing abstract classes 
-from NV_ABJ import MicrowaveSource
-
+from NV_ABJ.abstract_interfaces.microwave_source import MicrowaveSource
 class SG380Channels(IntEnum):
     n_type:int = 0
     bnc:int = 1
@@ -76,7 +77,7 @@ class SG380(MicrowaveSource):
 
 
     #########################################################################################################################################################################    
-    # Implementation of the abstract signal generator functions 
+    # Abstract MicrowaveSource Functions 
     #########################################################################################################################################################################    
     @property
     def frequency_range_hz(self):
@@ -85,46 +86,44 @@ class SG380(MicrowaveSource):
         return self._frequency_range_hz
     
     @property
-    def power_range_dbm(self):
+    def amplitude_range_dbm(self):
         """This takes in the power range of the device that you are interfacing with as a tuple in dBm
         """
         return self._power_range_dbm
 
-    def generate_sine_wave_hz_dbm(self,frequency:int,amplitude:float,*args,**kwargs):
-        """sets the frequency of the srs 
+    def prime_sinusoidal_rf(self,frequency_list_hz:npt.NDArray[np.float64],
+                        rf_amplitude_dbm:npt.NDArray[np.float64],
+                        *args,**kwargs):
+        """Loads a frequency list into the sg380. This will immediately turn on the sg380 and it is assumed that that the duration will 
+        be controlled by a microwave switch
+
+         Args:
+            frequency_list_hz (npt.NDArray[np.float64]): A floating point numpy array that consists of the frequency in Hz 
+            rf_amplitude_dbm (npt.NDArray[np.float64]): A floating point numpy array of the amplitude of the un-modulated sine wave dBm
         """
-        self.set_power_dbm(amplitude)
-        self.change_frequency(frequency, unit="Hz")
+
+        # Setting the SRS frequency 
+        if len(frequency_list_hz) > 1:
+            match self.channel:
+                case SG380Channels.n_type:
+                    self.send_list(frequency_list_hz=frequency_list_hz,
+                                   amplitude_list_n_type_dbm=rf_amplitude_dbm)
+                case SG380Channels.bnc:
+                    self.send_list(frequency_list_hz=frequency_list_hz,
+                                   amplitude_list_bnc_dbm=rf_amplitude_dbm)
+
+
+            self.send_list(frequency_list_hz=frequency_list_hz,
+                           amplitude_list_n_type_dbm=rf_amplitude_dbm
+                           )
+        else:
+            # Setting frequency and amplitude 
+            self.change_frequency(frequency_list_hz[0], unit="Hz")
+            self.set_power_dbm(rf_amplitude_dbm[0])
+
+        # Turning on the signal 
         self.turn_on_signal()
     
-    def set_frequency_hz(self,frequency_hz:int):
-        """Sets the signal frequency in Hz 
-        """
-        self.change_frequency(frequency_hz, unit="Hz")
-
-    def get_frequency_hz(self)->float:
-        """sets the frequency of the srs 
-        """
-        return float(self.get_current_frequency())
-
-    def set_power_dbm(self,amplitude:float):
-        """Sets the signal power in dBm 
-        """
-        match self.channel:
-            case SG380Channels.n_type:
-                self.change_amplitude_n_type(amplitude)
-            case SG380Channels.bnc:
-                self.change_amplitude_bnc(amplitude)
-    
-    def get_power_dbm(self)->float:
-        """Sets the signal power in dBm 
-        """
-        match self.channel:
-            case SG380Channels.n_type:
-                return float(self.get_n_type_amplitude())
-            case SG380Channels.bnc:
-                return float(self.get_bnc_amplitude())
-
     def turn_on_signal(self):
         """Turns on the signal source this will map to the specific port in question
           and does not turn on the device just the signal
@@ -145,46 +144,136 @@ class SG380(MicrowaveSource):
             case SG380Channels.bnc:
                 self.bnc_off()
 
-    def load_frequency_list_hz(self,frequency_list):
-        """This is meant to be a command to load a frequency list to a device if the device can't do this it can be implemented using the set frequency
-            and saving the list as a property to the class triggering you can just iterate through the list 
-        """
-        self.send_frequency_list(frequency_list)
-        self.trigger_list_item() # Goes to the first entrance on the list
 
-    def get_frequency_list_hz(self):
-        """ Returns a list of the currently loaded frequencies 
-        """
-        return self.get_frequency_list()
-
-    def iterate(self):
+    def iterate_next_waveform(self):
         """This will iterate through the loaded frequency list essentially setting the current frequency to the triggered values
         """
         self.trigger_list_item()
 
     #########################################################################################################################################################################    
-    # Cascading commands 
+    # SG380 Commands 
     #########################################################################################################################################################################    
-    def get_frequency_list(self):
+    def set_power_dbm(self,amplitude:float):
+        """Sets the signal power in dBm 
+        """
+        match self.channel:
+            case SG380Channels.n_type:
+                self.change_amplitude_n_type(amplitude)
+            case SG380Channels.bnc:
+                self.change_amplitude_bnc(amplitude)
+    
+    def get_power_dbm(self)->float:
+        """Sets the signal power in dBm 
+        """
+        match self.channel:
+            case SG380Channels.n_type:
+                return float(self.get_n_type_amplitude())
+            case SG380Channels.bnc:
+                return float(self.get_bnc_amplitude())
+
+
+    def get_list(self):
+        """returns the list items 
+
+        Returns:
+            _type_: _description_
+        """
         size_of_list = int(self.get_list_size())
-        frequencies = []
+        sg380_list = []
 
         for i in range(size_of_list):
-            freq = self.get_list_point(i)
-            frequencies.append(float(self.get_list_point(i).replace(",N,N,N,N,N,N,N,N,N,N,N,N,N,N\r\n","")))
-
-        return frequencies
+            sg380_list.append(self.get_list_point(i).replace("\r\n","").split(","))
+        return sg380_list
     
-    def send_frequency_list(self,frequency_list):
-        # Sends the list of desired frequencies to the SRS through GPIB
-        self._srs.query(f"LSTC? {len(frequency_list)}")
+    def send_list(self,frequency_list_hz:npt.NDArray[np.float64]=[],
+                  phase_deg:npt.NDArray[np.float64]=[],
+                   amplitude_list_bnc_dbm:npt.NDArray[np.float64]=[],
+                   offset_for_bnc:npt.NDArray[np.float64]=[],
+                   amplitude_list_n_type_dbm:npt.NDArray[np.float64]=[],
+                   front_panel_display_list:npt.NDArray[np.float64]=[],
+                   enable_disable_list:npt.NDArray[np.int8]=[],
+                   modulation_type_list:npt.NDArray=[],
+                   modulation_function_list:npt.NDArray=[],
+                   modulation_rate_list:npt.NDArray=[],
+                   modulation_deviation_list:npt.NDArray=[],
+                   amplitude_of_clock_list:npt.NDArray=[],
+                   offset_of_clock_output:npt.NDArray=[],
+                   amplitude_of_hf_list:npt.NDArray=[],
+                   offset_from_rear_dc_list:npt.NDArray=[],
+                   list_location:int = 1):
+        
+        ""
+        """ Settings for the list and how the command structure from the manual SG380
+
+            1 Frequency FREQ
+            2 Phase PHAS
+            3 Amplitude of LF (BNC output) AMPL
+            4 Offset of LF (BNC output) OFSL
+            5 Amplitude of RF (Type-N output) AMPR
+            6 Front panel display DISP
+            7 Enables/Disables
+                    Bit 0: Enable modulation MODL
+                    Bit 1: Disable LF (BNC output) ENBL
+                    Bit 2: Disable RF (Type-N output) ENBR
+                    Bit 3: Disable Clock output ENBC
+                    Bit 4: Disable HF (RF doubler output) ENBH
+            8 Modulation type TYPE
+            9 Modulation function
+                    AM/FM/ ΦM MFNC
+                    Sweep SFNC
+                    Pulse/Blank PFNC
+                    IQ QFNC
+            10 Modulation rate
+                    AM/FM/ΦM modulation rate RATE
+                    Sweep rate SRAT
+                    Pulse/Blank period PPER, RPER
+            11 Modulation deviation
+                    AM ADEP, ANDP
+                    FM FDEV, FNDV
+                    ΦM PDEV, PNDV
+                    Sweep SDEV
+                    Pulse/Blank PWID
+            12 Amplitude of clock output AMPC
+            13 Offset of clock output OFSC
+            14 Amplitude of HF (RF doubler output) AMPH
+            15 Offset of rear DC OFSD
+        """
+        # Finding max list 
+        all_command_lists = [frequency_list_hz,
+                            phase_deg,
+                            amplitude_list_bnc_dbm,
+                            offset_for_bnc,
+                            amplitude_list_n_type_dbm,
+                            front_panel_display_list,
+                            enable_disable_list,
+                            modulation_type_list,
+                            modulation_function_list,
+                            modulation_rate_list,
+                            modulation_deviation_list,
+                            amplitude_of_clock_list,
+                            offset_of_clock_output,
+                            amplitude_of_hf_list,
+                            offset_from_rear_dc_list]
+        
+        max_list_length = max([len(i) for i in all_command_lists])
+
+        # Making all lists the same length 
+        for lst in all_command_lists:
+            for i in range(max_list_length-len(lst)):
+                lst.append("N")
+              
         self.clear_status()
 
-        for ind,f in enumerate(frequency_list):
-            command = f"LSTP {ind},{f},N,N,N,N,N,N,N,N,N,N,N,N,N,N"
+        # Creating the list
+        self._srs.query(f"LSTC? {max_list_length}")
+
+        count = 0
+        for f,p,amp_b,off_b,amp_n_type,front_disp,ena_dis,mod_type,mod_func,mod_rate,mod_dev,amp_clock,off_clock,amp_hf,off_rear in zip(*all_command_lists):
+            command = "LSTP {},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(count,f,p,amp_b,off_b,amp_n_type,front_disp,ena_dis,mod_type,mod_func,mod_rate,mod_dev,amp_clock,off_clock,amp_hf,off_rear)
+            count = count + 1
             self._srs.write(command)
         
-        self._srs.write("LSTE 1")
+        self._srs.write(f"LSTE 1")
     
    
     #########################################################################################################################################################################    
