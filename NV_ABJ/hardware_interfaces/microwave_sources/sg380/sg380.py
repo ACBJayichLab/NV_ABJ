@@ -199,8 +199,7 @@ class SG380(MicrowaveSource):
                    amplitude_of_clock_list:npt.NDArray=[],
                    offset_of_clock_output:npt.NDArray=[],
                    amplitude_of_hf_list:npt.NDArray=[],
-                   offset_from_rear_dc_list:npt.NDArray=[],
-                   list_location:int = 1):
+                   offset_from_rear_dc_list:npt.NDArray=[]):
         
         ""
         """ Settings for the list and how the command structure from the manual SG380
