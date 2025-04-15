@@ -2,8 +2,7 @@ from abc import ABCMeta, ABC,abstractmethod
 from numpy.typing import NDArray
 import numpy as np
 
-from NV_ABJ import ConnectedDevice
-
+from NV_ABJ.abstract_interfaces.connected_device import ConnectedDevice
 
 class PhotonCounter(ConnectedDevice,metaclass=ABCMeta):
     """This is a class that all photon counters implemented on the system should follow in order to be utilized 
