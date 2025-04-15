@@ -58,18 +58,18 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def turn_on_signal(self):
+    def turn_on_signal(self)->None:
         """This turns on the signal source as a continuous operation 
         """
         pass 
 
     @abstractmethod
-    def turn_off_signal(self):
+    def turn_off_signal(self)->None:
         """This turns off the signal source and will not turn off the device 
         """
         pass   
     @abstractmethod
-    def iterate_next_waveform(self):
+    def iterate_next_waveform(self)->None:
         """This will iterate through the loaded frequency list essentially setting the current frequency to the triggered values
         """
         pass
