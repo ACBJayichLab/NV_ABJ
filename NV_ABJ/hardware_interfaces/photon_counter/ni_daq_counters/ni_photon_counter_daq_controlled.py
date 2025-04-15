@@ -9,8 +9,7 @@ import nidaqmx
 from nidaqmx.constants import CountDirection, Edge, AcquisitionType, TaskMode,TriggerType, READ_ALL_AVAILABLE
 
 # importing abstract class
-from NV_ABJ import PhotonCounter
-
+from NV_ABJ.abstract_interfaces.photon_counter import PhotonCounter
 class NiPhotonCounterDaqControlled(PhotonCounter):
 
     def __init__(self,device_name:str,counter_pfi:str,trigger_pfi:str,ctr:str = "ctr0",port:str  = "port0",number_of_clock_cycles:int = 2,timeout_waiting_for_data_s:int = 60):

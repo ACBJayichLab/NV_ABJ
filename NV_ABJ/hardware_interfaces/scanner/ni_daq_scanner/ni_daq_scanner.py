@@ -14,8 +14,7 @@ import time # used for timing out the daq interactions
 import nidaqmx
 
 # Importing abstract class
-from NV_ABJ import ScannerSingleAxis
-
+from NV_ABJ.abstract_interfaces.scanner import ScannerSingleAxis
 
 class NiDaqSingleAxisScanner(ScannerSingleAxis):
 

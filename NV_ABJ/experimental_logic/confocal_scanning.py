@@ -35,6 +35,18 @@ class ConfocalControls:
             y_con.set_position_m(y_position)
             z_con.set_position_m(z_position)
 
+    def get_position_m(self)->tuple[float,float,float]:
+        """This gets the position of the confocal position in meters 
+
+        Returns:
+            tuple[float,float,float]: (x,y,z)
+        """
+        with self.scanner_x as x_con, self.scanner_y as y_con, self.scanner_z as z_con:
+            x_position = x_con.get_position_m()
+            y_position = y_con.get_position_m()
+            z_position = z_con.get_position_m()
+
+        return x_position, y_position, z_position
 
     def xy_scan(self,dwell_time_s:float,x_positions:NDArray,y_positions:NDArray,z_position:float,*args,**kwargs)-> tuple[NDArray,NDArray,NDArray]:
         """An xy scan has the same z height for all points and translates to the x and y positions. This instance of the xy 
