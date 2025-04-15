@@ -38,6 +38,7 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
     @abstractmethod
     def prime_sinusoidal_rf(self,frequency_list_hz:npt.NDArray[np.float64],
                         rf_amplitude_dbm:npt.NDArray[np.float64],
+                        duration_s:npt.NDArray[np.float64],
                         *args,**kwargs):
         """This is a generalized function that is meant to allow for an experimental signal generation this 
         is meant to be implemented so the experimental logic for a cwesr, pulsed esr, or tau sweep will work properly.
@@ -52,6 +53,7 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
          Args:
             frequency_list_hz (npt.NDArray[np.float64]): A floating point numpy array that consists of the frequency in Hz 
             rf_amplitude_dbm (npt.NDArray[np.float64]): A floating point numpy array of the amplitude of the un-modulated sine wave dBm
+            duration_s (npt.NDArray[np.float64]): A floating point numpy array of the duration in seconds for sine wave 
         """
         pass
 

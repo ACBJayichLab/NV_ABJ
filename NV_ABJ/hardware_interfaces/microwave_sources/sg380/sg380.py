@@ -103,23 +103,13 @@ class SG380(MicrowaveSource):
         """
 
         # Setting the SRS frequency 
-        if len(frequency_list_hz) > 1:
-            match self.channel:
-                case SG380Channels.n_type:
-                    self.send_list(frequency_list_hz=frequency_list_hz,
-                                   amplitude_list_n_type_dbm=rf_amplitude_dbm)
-                case SG380Channels.bnc:
-                    self.send_list(frequency_list_hz=frequency_list_hz,
-                                   amplitude_list_bnc_dbm=rf_amplitude_dbm)
-
-
-            self.send_list(frequency_list_hz=frequency_list_hz,
-                           amplitude_list_n_type_dbm=rf_amplitude_dbm
-                           )
-        else:
-            # Setting frequency and amplitude 
-            self.change_frequency(frequency_list_hz[0], unit="Hz")
-            self.set_power_dbm(rf_amplitude_dbm[0])
+        match self.channel:
+            case SG380Channels.n_type:
+                self.send_list(frequency_list_hz=frequency_list_hz,
+                                amplitude_list_n_type_dbm=rf_amplitude_dbm)
+            case SG380Channels.bnc:
+                self.send_list(frequency_list_hz=frequency_list_hz,
+                                amplitude_list_bnc_dbm=rf_amplitude_dbm)
 
         # Turning on the signal 
         self.turn_on_signal()
@@ -148,7 +138,7 @@ class SG380(MicrowaveSource):
     def iterate_next_waveform(self):
         """This will iterate through the loaded frequency list essentially setting the current frequency to the triggered values
         """
-        self.trigger_list_item()
+        self.trigger_list_item() # Triggers next in list
 
     #########################################################################################################################################################################    
     # SG380 Commands 
@@ -201,7 +191,6 @@ class SG380(MicrowaveSource):
                    amplitude_of_hf_list:npt.NDArray=[],
                    offset_from_rear_dc_list:npt.NDArray=[]):
         
-        ""
         """ Settings for the list and how the command structure from the manual SG380
 
             1 Frequency FREQ
@@ -365,6 +354,12 @@ class SG380(MicrowaveSource):
     def trigger_list_item(self):
         # Triggers the next item on the list for the SRS using the DAQ
         self._srs.write("*TRG")
+    
+    def wait_for_command_execution(self)->None:
+        """The instrument will not process further commands until all prior commands
+        including this one have completed. 
+        """
+        self._srs.write("*WAI")
     
 
     def clear_status(self):
