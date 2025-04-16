@@ -11,18 +11,18 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_image_scan_widget_ui(object):
-    def setupUi(self, image_scan_widget_ui):
-        image_scan_widget_ui.setObjectName("image_scan_widget_ui")
-        image_scan_widget_ui.resize(752, 507)
-        image_scan_widget_ui.setMinimumSize(QtCore.QSize(623, 418))
-        self.image_scan_frame = QtWidgets.QFrame(image_scan_widget_ui)
+class Ui_image_scan_widget(object):
+    def setupUi(self, image_scan_widget):
+        image_scan_widget.setObjectName("image_scan_widget")
+        image_scan_widget.resize(623, 418)
+        image_scan_widget.setMinimumSize(QtCore.QSize(623, 418))
+        self.image_scan_frame = QtWidgets.QFrame(image_scan_widget)
         self.image_scan_frame.setGeometry(QtCore.QRect(170, 60, 450, 350))
         self.image_scan_frame.setStyleSheet("")
         self.image_scan_frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.image_scan_frame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.image_scan_frame.setObjectName("image_scan_frame")
-        self.confocal_controls_frame = QtWidgets.QFrame(image_scan_widget_ui)
+        self.confocal_controls_frame = QtWidgets.QFrame(image_scan_widget)
         self.confocal_controls_frame.setGeometry(QtCore.QRect(10, 10, 161, 401))
         self.confocal_controls_frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.confocal_controls_frame.setFrameShadow(QtWidgets.QFrame.Raised)
@@ -93,35 +93,35 @@ class Ui_image_scan_widget_ui(object):
         self.update_cursor_location_push_button.setCheckable(True)
         self.update_cursor_location_push_button.setChecked(False)
         self.update_cursor_location_push_button.setObjectName("update_cursor_location_push_button")
-        self.toolbar_frame_image_scan = QtWidgets.QFrame(image_scan_widget_ui)
+        self.toolbar_frame_image_scan = QtWidgets.QFrame(image_scan_widget)
         self.toolbar_frame_image_scan.setGeometry(QtCore.QRect(170, 10, 450, 50))
         self.toolbar_frame_image_scan.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.toolbar_frame_image_scan.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.toolbar_frame_image_scan.setFrameShadow(QtWidgets.QFrame.Raised)
         self.toolbar_frame_image_scan.setObjectName("toolbar_frame_image_scan")
 
-        self.retranslateUi(image_scan_widget_ui)
-        QtCore.QMetaObject.connectSlotsByName(image_scan_widget_ui)
+        self.retranslateUi(image_scan_widget)
+        QtCore.QMetaObject.connectSlotsByName(image_scan_widget)
 
-    def retranslateUi(self, image_scan_widget_ui):
+    def retranslateUi(self, image_scan_widget):
         _translate = QtCore.QCoreApplication.translate
-        image_scan_widget_ui.setWindowTitle(_translate("image_scan_widget_ui", "Image Scan Widget"))
-        self.label_14.setText(_translate("image_scan_widget_ui", "X(μm)"))
-        self.show_cursor_radio_button.setText(_translate("image_scan_widget_ui", "Show Cursor"))
-        self.local_image_scan_push_button.setText(_translate("image_scan_widget_ui", "Local Scan"))
-        self.label_15.setText(_translate("image_scan_widget_ui", "Resolution"))
-        self.label_16.setText(_translate("image_scan_widget_ui", "Dwell Time (ms)"))
-        self.label_17.setText(_translate("image_scan_widget_ui", "Y(μm)"))
-        self.label_19.setText(_translate("image_scan_widget_ui", "Z(μm)"))
-        self.full_image_scan_push_button.setText(_translate("image_scan_widget_ui", "Full Scan"))
-        self.update_cursor_location_push_button.setText(_translate("image_scan_widget_ui", "Update Cursor"))
+        image_scan_widget.setWindowTitle(_translate("image_scan_widget", "Image Scan Widget"))
+        self.label_14.setText(_translate("image_scan_widget", "X(μm)"))
+        self.show_cursor_radio_button.setText(_translate("image_scan_widget", "Show Cursor"))
+        self.local_image_scan_push_button.setText(_translate("image_scan_widget", "Local Scan"))
+        self.label_15.setText(_translate("image_scan_widget", "Resolution"))
+        self.label_16.setText(_translate("image_scan_widget", "Dwell Time (ms)"))
+        self.label_17.setText(_translate("image_scan_widget", "Y(μm)"))
+        self.label_19.setText(_translate("image_scan_widget", "Z(μm)"))
+        self.full_image_scan_push_button.setText(_translate("image_scan_widget", "Full Scan"))
+        self.update_cursor_location_push_button.setText(_translate("image_scan_widget", "Update Cursor"))
 
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    image_scan_widget_ui = QtWidgets.QWidget()
-    ui = Ui_image_scan_widget_ui()
-    ui.setupUi(image_scan_widget_ui)
-    image_scan_widget_ui.show()
+    image_scan_widget = QtWidgets.QWidget()
+    ui = Ui_image_scan_widget()
+    ui.setupUi(image_scan_widget)
+    image_scan_widget.show()
     sys.exit(app.exec_())

@@ -14,11 +14,11 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationTool
 from NV_ABJ.experimental_logic.confocal_scanning import ConfocalControls
 
 # Importing generated python code from qtpy ui
-from NV_ABJ.user_interfaces.image_scan_widget.generated_ui import Ui_ImageScanWidget
+from NV_ABJ.user_interfaces.image_scan_widget.generated_ui import Ui_image_scan_widget
 #############################################################################################
 
 # Making a class that inherits the python base code produced by the user interface
-class ImageScanWidget(Ui_ImageScanWidget):
+class ImageScanWidget(Ui_image_scan_widget):
     @dataclass
     class ImageScanWidgetConfig:
         cmap:str = "pink"
@@ -102,7 +102,6 @@ class ImageScanWidget(Ui_ImageScanWidget):
         self.toolbar.setFixedWidth(image_scan_px_x)
         self.canvas.setParent(self.image_scan_frame)
         self.insert_ax()  
-        print("Added graph")
        
         # Connecting Scanner Buttons
         self.full_image_scan_push_button.clicked.connect(self.full_image_scan)
@@ -115,7 +114,6 @@ class ImageScanWidget(Ui_ImageScanWidget):
         self.x_confocal_spin_box.valueChanged.connect(self.update_confocal_position)
         self.y_confocal_spin_box.valueChanged.connect(self.update_confocal_position)
         self.z_confocal_spin_box.valueChanged.connect(self.update_confocal_position)
-        print("Connected Buttons")
         
 
     # Easy calls for the position limits 
@@ -138,7 +136,6 @@ class ImageScanWidget(Ui_ImageScanWidget):
 
         if self.cursor_plot:
             self.cursor_plot.remove()
-        print("Toggled")
         
         if self.show_cursor_radio_button.isChecked():
             self.cursor_plot = self.ax.scatter(self.confocal_controls.get_position_m()[0]*1e6,
@@ -172,7 +169,6 @@ class ImageScanWidget(Ui_ImageScanWidget):
 
 
     def cursor_update_location(self):
-        print("updating cursor")
         self._cursor_update_location = True 
 
     def insert_ax(self):
@@ -225,7 +221,6 @@ class ImageScanWidget(Ui_ImageScanWidget):
 
     # Scanning 
     def update_image_scan(self,xy_scan):
-        print("update image scan")
         if self.image_scan_plot:
             self.image_scan_plot.remove()
 
@@ -310,64 +305,8 @@ class ImageScanWidget(Ui_ImageScanWidget):
 
     # Adjusting the confocal based on spin boxes  
     def update_confocal_position(self):
-        print("Confocal position updated")
         self.confocal_controls.set_position_m(self.x_confocal_spin_box.value()*1e-6,
                                          self.y_confocal_spin_box.value()*1e-6,
                                          self.z_confocal_spin_box.value()*1e-6)
         self.update_cursor()
-    
-if __name__ == "__main__":
-    from experimental_configuration.experimental_logic import *
-
-    app = QtWidgets.QApplication(sys.argv)
-
-    main_window = QtWidgets.QMainWindow()
-    ui = ImageScanWidget(main_window,confocal_controls=confocal_controls,default_save_config="")
-
-    main_window.show()
-    app.exec()
-
-    
-    # from experimental_configuration.experimental_logic import *
-    # from experimental_configuration.hardware_interfaces import *
-
-    # from UiCode.generated_ui import Ui_MainWindow
-
-    # from PyQt5 import QtCore, QtWidgets
-    # import sys
-    # from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QWidget
-
-
-    # class MainWindow(Ui_MainWindow):
-    #     def __init__(self,window, *args, **kwargs):
-    #         # self.setupUi(window)
-    #         self.window = window
-    #         ImageScanWidget(self.window,
-    #                     confocal_controls=confocal_controls,
-    #                     default_save_config="")
-            
-    #         # AomTriggerWidget(self.side_bar_frame,
-    #         #                  photo_diode=green_photo_diode,
-    #         #                  aom_trigger_device=green_aom_trigger,
-    #         #                  pulse_generator=pulse_blaster,
-    #         #                  aom_on_text="Green AOM On",
-    #         #                  aom_off_text="Green AOM Off") 
-
-    #         # TrackingWidget(self.side_bar_frame,
-    #         #                confocal_controls=confocal_controls)
-
-
-
-
-
-
-
-    # if __name__ == "__main__":
-
-    #     app = QtWidgets.QApplication(sys.argv)
-
-    #     main_window = QtWidgets.QMainWindow()
-    #     ui = MainWindow(main_window)
-
-    #     main_window.show()
-    #     app.exec()
+  

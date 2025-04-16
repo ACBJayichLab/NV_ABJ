@@ -158,8 +158,10 @@ class TrackingWidget(Ui_TrackingWidget):
         self.z_scan_plot = None
         self.tracking_z_pos = None
 
-        self.z_scan_ax.plot(np.zeros((self.confocal_controls.tracking_xy_number_of_points,self.confocal_controls.tracking_xy_number_of_points)),
-                                                        c=self.config.z_scan_color)
+        self.tracking_z_scan_plot = self.z_scan_ax.plot(np.zeros(self.confocal_controls.tracking_xy_number_of_points),np.zeros(self.confocal_controls.tracking_xy_number_of_points),
+                                                        c=self.config.z_scan_color)[0]
+        self.tracking_z_pos = self.z_scan_ax.axvline(0*1e6,linestyle="--",c=self.config.z_scan_position_line_color)
+
         self.z_scan_ax.set_xlim([min_z*1e6,max_z*1e6])
         self.z_scan_ax.set_xlabel("X(\u03bcm)", loc='right',labelpad=0)
         self.z_scan_ax.set_ylabel("kCounts/s", loc='top',labelpad=0)
@@ -194,15 +196,20 @@ class TrackingWidget(Ui_TrackingWidget):
         self.tracking_image_canvas.figure.tight_layout()
         self.tracking_image_canvas.draw()
 
+
+        
         if self.tracking_z_scan_plot:
-            del self.tracking_z_scan_plot
+            self.tracking_z_scan_plot.remove()
 
         if self.tracking_z_pos:
-            del self.tracking_z_pos
+            self.tracking_z_pos.remove()
 
-
-        self.tracking_z_scan_plot = self.z_scan_ax.plot(z_positions,z_1d_scan/1000, c=self.config.z_scan_color)
+        self.tracking_z_scan_plot = self.z_scan_ax.plot(z_positions*1e6,z_1d_scan/1000, c=self.config.z_scan_color)[0]
         self.tracking_z_pos = self.z_scan_ax.axvline(z_pos*1e6,linestyle="--",c=self.config.z_scan_position_line_color)
+        self.z_scan_ax.set_xlim([min(z_positions)*1e6,max(z_positions)*1e6])
+        self.z_scan_ax.set_ylim([min(z_1d_scan)*1e-3,max(z_1d_scan)*1e-3])
+
+        print(z_pos)
 
         self.tracking_z_scan_canvas.figure.tight_layout()
         self.tracking_z_scan_canvas.draw()
@@ -245,13 +252,13 @@ class TrackingWidget(Ui_TrackingWidget):
 
         self.thread
 
-# if __name__ == "__main__":
-#     from experimental_configuration.experimental_logic import *
+if __name__ == "__main__":
+    from experimental_configuration.experimental_logic import *
 
-#     app = QtWidgets.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
 
-#     main_window = QtWidgets.QMainWindow()
-#     ui = TrackingWidget(main_window,confocal_controls=confocal_controls)
+    main_window = QtWidgets.QMainWindow()
+    ui = TrackingWidget(main_window,confocal_controls=confocal_controls)
 
-#     main_window.show()
-#     app.exec()
+    main_window.show()
+    app.exec()

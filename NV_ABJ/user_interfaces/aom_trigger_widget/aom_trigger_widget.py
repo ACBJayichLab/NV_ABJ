@@ -27,10 +27,12 @@ class AomTriggerWidget(Ui_AomTrigger):
         self.aom_off_text = aom_off_text
         self.pulse_generator = pulse_generator
 
-        self.toggle_aom_push_button.setText(self.aom_off_text) 
-        self.toggle_aom_push_button.clicked.connect(self.toggle_aom)
-        # Calling AOM to update text
+        # Calling AOM to update text this will default toggle the AOM to be off
+        self.aom_trigger_device.device_status = True
         self.toggle_aom()
+
+        self.toggle_aom_push_button.clicked.connect(self.toggle_aom)
+
             
 
         self.timer = QTimer()
@@ -39,8 +41,8 @@ class AomTriggerWidget(Ui_AomTrigger):
         self.update_time() 
 
     def update_time(self):
-        laser_power_mw = self.photo_diode.get_laser_power_w()/1000
-        self.aom_power_entry.setText(str(laser_power_mw))
+        laser_power_mw = self.photo_diode.get_laser_power_w()*1000
+        self.aom_power_entry.setText(f"{laser_power_mw:.2e}")
 
     def toggle_aom(self):
 
@@ -52,3 +54,4 @@ class AomTriggerWidget(Ui_AomTrigger):
             self.aom_trigger_device.device_status = True
         self.pulse_generator.stop()
         self.pulse_generator.update_devices([self.aom_trigger_device])
+
