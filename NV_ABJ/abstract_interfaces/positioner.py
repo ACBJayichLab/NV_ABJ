@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from NV_ABJ import ConnectedDevice
+from NV_ABJ.abstract_interfaces.connected_device import ConnectedDevice
 
 class PositionerSingleAxis(ConnectedDevice,metaclass=ABCMeta):
     """Positioners are different than scanners because of a lack of feedback to the system you move steps which may be consistent 

@@ -1,6 +1,5 @@
 from abc import ABCMeta, ABC,abstractmethod
-from NV_ABJ import ConnectedDevice
-
+from NV_ABJ.abstract_interfaces.connected_device import ConnectedDevice
 class ScannerSingleAxis(ConnectedDevice,metaclass=ABCMeta):
     """A scanner is defined as an item where we both measure the distance and set the distance this may consist of multiple aspects/ devices or simply one device 
     """
@@ -18,7 +17,5 @@ class ScannerSingleAxis(ConnectedDevice,metaclass=ABCMeta):
         """
         ...
 
-class XYZScanner(metaclass=ABCMeta):
-    ...
 
 

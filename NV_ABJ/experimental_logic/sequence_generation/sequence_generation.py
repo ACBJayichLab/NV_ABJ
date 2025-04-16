@@ -58,7 +58,7 @@ class SequenceSubset:
         self.steps = []
         self.loop_steps = loop_steps # when set to zero it wont be looped
         self.devices = set()
- 
+
     def add_step(self,devices:list=[],duration_ns:float=0):
         """Adds a step to the sub sequence 
 

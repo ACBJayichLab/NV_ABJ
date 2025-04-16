@@ -2,13 +2,13 @@ __all__ = ["ConfocalControls"]
 
 # basic Imports
 import numpy as np
-import matplotlib.pyplot as plt
 from numpy.typing import NDArray
-from NV_ABJ import ScannerSingleAxis, PhotonCounter
+from NV_ABJ.abstract_interfaces.photon_counter import PhotonCounter
+from NV_ABJ.abstract_interfaces.scanner import ScannerSingleAxis
 
 class ConfocalControls:
     def __init__(self,scanner_x:ScannerSingleAxis,scanner_y:ScannerSingleAxis,scanner_z:ScannerSingleAxis,photon_counter:PhotonCounter,
-                 tracking_xy_span:float = 1.5e-6,tracking_z_span:float = 3e-6,tracking_dwell_time_s:float = 5e-3,tracking_xy_number_of_points:int = 10,tracking_z_number_of_points:int = 20):
+                tracking_xy_span:float = 1.5e-6,tracking_z_span:float = 3e-6,tracking_dwell_time_s:float = 5e-3,tracking_xy_number_of_points:int = 10,tracking_z_number_of_points:int = 20):
         self.scanner_x = scanner_x
         self.scanner_y = scanner_y
         self.scanner_z = scanner_z
@@ -116,7 +116,7 @@ class ConfocalControls:
     
     def z_scan(self,dwell_time_s:float,x_position:float,y_position:float, z_positions:NDArray)->tuple[NDArray,NDArray]:
         """This is a z scan over a stationary xy position. It then goes through the z positions sequential
-         after ordering the lists to be in the correct orientation
+        after ordering the lists to be in the correct orientation
 
         Args:
             dwell_time_s (float): How long we dwell at each point before moving to the next point

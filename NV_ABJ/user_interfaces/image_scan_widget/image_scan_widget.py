@@ -14,7 +14,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationTool
 from NV_ABJ.experimental_logic.confocal_scanning import ConfocalControls
 
 # Importing generated python code from qtpy ui
-from generated_ui import Ui_ImageScanWidget
+from NV_ABJ.user_interfaces.image_scan_widget.generated_ui import Ui_ImageScanWidget
 #############################################################################################
 
 # Making a class that inherits the python base code produced by the user interface
@@ -47,7 +47,7 @@ class ImageScanWidget(Ui_ImageScanWidget):
             self.xy_scan = None
 
         def run(self):
-            self.xy_scan = confocal_controls.xy_scan(dwell_time_s=self.dwell_time_s ,
+            self.xy_scan = self.confocal_controls.xy_scan(dwell_time_s=self.dwell_time_s ,
                                                                 x_positions=self.x_positions,
                                                                 y_positions=self.y_positions,
                                                                 z_position=self.z_position)
@@ -57,17 +57,22 @@ class ImageScanWidget(Ui_ImageScanWidget):
     def __init__(self,window,
                   confocal_controls:ConfocalControls,
                   default_save_config,
+                  default_position_um:tuple[float,float,float] = None,
                   image_scan_config:ImageScanWidgetConfig = ImageScanWidgetConfig(),
                     *args, **kwargs):
         
         super().__init__(*args, **kwargs)
 
         # Setting device controls 
-        self.window = window
         self.confocal_controls = confocal_controls
         self.default_save_config = default_save_config
+        
+        if default_position_um == None:
+            self.default_position_um = (0,0,0)
+        else:
+            self.default_position_um = default_position_um
             
-        self.confocal_controls.set_position_m(*self.default_position_um)
+        self.confocal_controls.set_position_m(self.default_position_um[0],self.default_position_um[1],self.default_position_um[2])
 
         self.image_scan_config = image_scan_config
 
@@ -75,7 +80,7 @@ class ImageScanWidget(Ui_ImageScanWidget):
         self.dpi = image_scan_config.graph_dpi
 
         # Adding form to window
-        self.setupUi(self.window)
+        self.setupUi(window)
 
         # Setting the cursor updating to false by default
         self._cursor_update_location = False
@@ -96,7 +101,8 @@ class ImageScanWidget(Ui_ImageScanWidget):
         self.toolbar = NavigationToolbar(self.canvas,self.toolbar_frame_image_scan)
         self.toolbar.setFixedWidth(image_scan_px_x)
         self.canvas.setParent(self.image_scan_frame)
-        self.insert_ax()
+        self.insert_ax()  
+        print("Added graph")
        
         # Connecting Scanner Buttons
         self.full_image_scan_push_button.clicked.connect(self.full_image_scan)
@@ -109,6 +115,7 @@ class ImageScanWidget(Ui_ImageScanWidget):
         self.x_confocal_spin_box.valueChanged.connect(self.update_confocal_position)
         self.y_confocal_spin_box.valueChanged.connect(self.update_confocal_position)
         self.z_confocal_spin_box.valueChanged.connect(self.update_confocal_position)
+        print("Connected Buttons")
         
 
     # Easy calls for the position limits 
@@ -131,15 +138,16 @@ class ImageScanWidget(Ui_ImageScanWidget):
 
         if self.cursor_plot:
             self.cursor_plot.remove()
+        print("Toggled")
         
         if self.show_cursor_radio_button.isChecked():
-            self.cursor_plot = self.ax.scatter(self.confocal_controls.get_position_m()[0]*1e-6,
-                                               self.confocal_controls.get_position_m()[1]*1e-6,
+            self.cursor_plot = self.ax.scatter(self.confocal_controls.get_position_m()[0]*1e6,
+                                               self.confocal_controls.get_position_m()[1]*1e6,
                                                  marker=self.image_scan_config.cursor_shape,
                                                linewidths=0.5, s=20, facecolors='none', color=self.image_scan_config.cursor_color)
         else:
-            self.cursor_plot = self.ax.scatter(self.confocal_controls.get_position_m()[0]*1e-6,
-                                               self.confocal_controls.get_position_m()[1]*1e-6,
+            self.cursor_plot = self.ax.scatter(self.confocal_controls.get_position_m()[0]*1e6,
+                                               self.confocal_controls.get_position_m()[1]*1e6,
                                                 marker=self.image_scan_config.cursor_shape,
                                                linewidths=0.5, s=20, facecolors='none', color='None')
         self.canvas.draw()
@@ -164,6 +172,7 @@ class ImageScanWidget(Ui_ImageScanWidget):
 
 
     def cursor_update_location(self):
+        print("updating cursor")
         self._cursor_update_location = True 
 
     def insert_ax(self):
@@ -216,7 +225,7 @@ class ImageScanWidget(Ui_ImageScanWidget):
 
     # Scanning 
     def update_image_scan(self,xy_scan):
-
+        print("update image scan")
         if self.image_scan_plot:
             self.image_scan_plot.remove()
 
@@ -251,7 +260,6 @@ class ImageScanWidget(Ui_ImageScanWidget):
             self.local_image_scan_push_button.setEnabled(True)
 
         # Getting spin box values 
-        z_position = self.z_position
         dwell_time_s = self.dwell_time_image_scan_spin_box.value()*1e-3
 
         # Starting asynchronous thread
@@ -259,7 +267,7 @@ class ImageScanWidget(Ui_ImageScanWidget):
         self.worker = ImageScanWidget.Worker(dwell_time_s=dwell_time_s,
                              x_positions=x_positions,
                              y_positions=y_positions,
-                             z_position=z_position,
+                             z_position=self.z_confocal_spin_box.value()*1e-6,
                              confocal_controls=self.confocal_controls)
 
         self.worker.moveToThread(self.thread)
@@ -302,22 +310,64 @@ class ImageScanWidget(Ui_ImageScanWidget):
 
     # Adjusting the confocal based on spin boxes  
     def update_confocal_position(self):
-        confocal_controls.set_position_m(self.x_position,self.y_position,self.z_position )
+        print("Confocal position updated")
+        self.confocal_controls.set_position_m(self.x_confocal_spin_box.value()*1e-6,
+                                         self.y_confocal_spin_box.value()*1e-6,
+                                         self.z_confocal_spin_box.value()*1e-6)
         self.update_cursor()
     
-    
 if __name__ == "__main__":
-    # Hardware and logic imports
-    from experimental_configuration.experimental_logic import confocal_controls
+    from experimental_configuration.experimental_logic import *
 
     app = QtWidgets.QApplication(sys.argv)
-    MainWindow =QtWidgets.QMainWindow()
-    # MainWindow.setFixedSize(730, 410)
 
-    ui = ImageScanWidget(MainWindow,
-                         confocal_controls=confocal_controls,
-                         default_save_config=None)
-    
+    main_window = QtWidgets.QMainWindow()
+    ui = ImageScanWidget(main_window,confocal_controls=confocal_controls,default_save_config="")
 
-    MainWindow.show()
+    main_window.show()
     app.exec()
+
+    
+    # from experimental_configuration.experimental_logic import *
+    # from experimental_configuration.hardware_interfaces import *
+
+    # from UiCode.generated_ui import Ui_MainWindow
+
+    # from PyQt5 import QtCore, QtWidgets
+    # import sys
+    # from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QWidget
+
+
+    # class MainWindow(Ui_MainWindow):
+    #     def __init__(self,window, *args, **kwargs):
+    #         # self.setupUi(window)
+    #         self.window = window
+    #         ImageScanWidget(self.window,
+    #                     confocal_controls=confocal_controls,
+    #                     default_save_config="")
+            
+    #         # AomTriggerWidget(self.side_bar_frame,
+    #         #                  photo_diode=green_photo_diode,
+    #         #                  aom_trigger_device=green_aom_trigger,
+    #         #                  pulse_generator=pulse_blaster,
+    #         #                  aom_on_text="Green AOM On",
+    #         #                  aom_off_text="Green AOM Off") 
+
+    #         # TrackingWidget(self.side_bar_frame,
+    #         #                confocal_controls=confocal_controls)
+
+
+
+
+
+
+
+    # if __name__ == "__main__":
+
+    #     app = QtWidgets.QApplication(sys.argv)
+
+    #     main_window = QtWidgets.QMainWindow()
+    #     ui = MainWindow(main_window)
+
+    #     main_window.show()
+    #     app.exec()

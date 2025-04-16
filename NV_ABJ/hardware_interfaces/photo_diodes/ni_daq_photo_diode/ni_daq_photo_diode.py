@@ -1,8 +1,4 @@
-__all__ = []
-
-# Numpy is used for array allocation and fast math operations here
-import numpy as np
-from numpy.typing import NDArray
+__all__ = ["NiDaqPhotoDiode"]
 
 # National instruments imports 
 import nidaqmx
