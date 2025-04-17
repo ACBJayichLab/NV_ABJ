@@ -90,7 +90,7 @@ class Ui_image_scan_widget(object):
         self.full_image_scan_push_button.setObjectName("full_image_scan_push_button")
         self.update_cursor_location_push_button = QtWidgets.QPushButton(self.confocal_controls_frame)
         self.update_cursor_location_push_button.setGeometry(QtCore.QRect(20, 120, 121, 31))
-        self.update_cursor_location_push_button.setCheckable(True)
+        self.update_cursor_location_push_button.setCheckable(False)
         self.update_cursor_location_push_button.setChecked(False)
         self.update_cursor_location_push_button.setObjectName("update_cursor_location_push_button")
         self.toolbar_frame_image_scan = QtWidgets.QFrame(image_scan_widget)

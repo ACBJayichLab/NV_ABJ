@@ -57,6 +57,8 @@ class TrackingWidget(Ui_TrackingWidget):
     def __init__(self,window,
                  confocal_controls:ConfocalControls,
                   config:PlotConfig = PlotConfig(),
+                   update_ui:bool = False,
+                   running:bool = False,
                     *args, **kwargs):
         
         super().__init__(*args, **kwargs)
@@ -67,6 +69,8 @@ class TrackingWidget(Ui_TrackingWidget):
         self.config = config
         self.dpi = config.dpi
         self.default_cmap = config.cmap
+        self.update_ui = update_ui
+        self.running = running
 
         # Adding form to window
         self.setupUi(self.window)
@@ -216,41 +220,45 @@ class TrackingWidget(Ui_TrackingWidget):
     
 
     def tracking_thread(self):
+        if not self.running:
+            self.running = True 
 
-        def update_after_scan():
-            # adding new image to the ui
-            self.update_tracking_graphs(self.worker.tracking_graphs,self.worker.new_x,self.worker.new_y,self.worker.new_z)
-            self.start_tracking_push_button.setEnabled(True)
+            def update_after_scan():
+                # adding new image to the ui
+                self.update_tracking_graphs(self.worker.tracking_graphs,self.worker.new_x,self.worker.new_y,self.worker.new_z)
+                self.start_tracking_push_button.setEnabled(True)
+                self.running = False
 
-        # Getting spin box values 
-        dwell_time_s = self.dwell_time_ms_spin_box_tracking.value()*1e-3
-        self.confocal_controls.tracking_dwell_time_s = dwell_time_s
-        self.confocal_controls.tracking_xy_number_of_points = self.xy_points_spin_box_tracking.value()
-        self.confocal_controls.tracking_z_number_of_points = self.z_points_spin_box_tracking.value()
-        self.confocal_controls.tracking_xy_span = self.xy_span_spin_box_tracking.value()*1e-6
-        self.confocal_controls.tracking_z_span = self.z_span_spin_box_tracking.value()*1e-6
+            # Getting spin box values 
+            dwell_time_s = self.dwell_time_ms_spin_box_tracking.value()*1e-3
+            self.confocal_controls.tracking_dwell_time_s = dwell_time_s
+            self.confocal_controls.tracking_xy_number_of_points = self.xy_points_spin_box_tracking.value()
+            self.confocal_controls.tracking_z_number_of_points = self.z_points_spin_box_tracking.value()
+            self.confocal_controls.tracking_xy_span = self.xy_span_spin_box_tracking.value()*1e-6
+            self.confocal_controls.tracking_z_span = self.z_span_spin_box_tracking.value()*1e-6
 
-        # Starting asynchronous thread
-        self.thread = QThread()
-        self.worker = TrackingWidget.Worker(x_position=self.confocal_controls.get_position_m()[0],
-                             y_position=self.confocal_controls.get_position_m()[1],
-                             z_position=self.confocal_controls.get_position_m()[2],
-                             confocal_controls=self.confocal_controls)
+            # Starting asynchronous thread
+            self.thread = QThread()
+            self.worker = TrackingWidget.Worker(x_position=self.confocal_controls.get_position_m()[0],
+                                y_position=self.confocal_controls.get_position_m()[1],
+                                z_position=self.confocal_controls.get_position_m()[2],
+                                confocal_controls=self.confocal_controls)
 
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+            self.worker.moveToThread(self.thread)
+            self.thread.started.connect(self.worker.run)
+            self.worker.finished.connect(self.thread.quit)
+            self.worker.finished.connect(self.worker.deleteLater)
+            self.thread.finished.connect(self.thread.deleteLater)
 
-        self.thread.start()
+            self.thread.start()
 
-        # Locking the buttons so you can't start a new scan 
-        self.start_tracking_push_button.setEnabled(False)
-        # Unlocking the buttons 
-        self.thread.finished.connect(update_after_scan)
+            # Locking the buttons so you can't start a new scan 
+            self.start_tracking_push_button.setEnabled(False)
+            # Unlocking the buttons 
+            self.thread.finished.connect(update_after_scan)
 
-        self.thread
+            self.thread
+
 
 if __name__ == "__main__":
     from experimental_configuration.experimental_logic import *

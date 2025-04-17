@@ -21,7 +21,6 @@ class ConfocalControls:
         self.tracking_xy_number_of_points = tracking_xy_number_of_points
         self.tracking_z_number_of_points = tracking_z_number_of_points
 
-
     def set_position_m(self,x_position:float,y_position:float,z_position:float)->None:
         """Sets the position of the confocal based on the inputs
 
@@ -64,6 +63,9 @@ class ConfocalControls:
             NDArray: X positions. A sorted x array of the positions passed originally to the function 
             NDArray: Y positions. A sorted y array of the positions passed originally to the function
         """
+
+        # Getting the initial starting point 
+        x_initial,y_initial,z_initial = self.get_position_m()
 
         # Making sure the lists are ordered correctly 
         x_positions = sorted(x_positions)
@@ -112,6 +114,11 @@ class ConfocalControls:
 
         xy_counts = np.rot90(xy_counts)
 
+        # Returning to original position
+        self.set_position_m(x_position=x_initial,
+                            y_position=y_initial,
+                            z_position=z_initial)
+
         return xy_counts,np.array(x_positions),np.array(y_positions)
     
     def z_scan(self,dwell_time_s:float,x_position:float,y_position:float, z_positions:NDArray)->tuple[NDArray,NDArray]:
@@ -128,14 +135,14 @@ class ConfocalControls:
             NDArray: Photon counts. An array of the photons per second at each point in the z positions
             NDArray: Z positions. A sorted array for the z positions 
         """
+        # Getting the initial starting point 
+        x_initial,y_initial,z_initial = self.get_position_m()
+
         # Sorting z list
         z_positions = sorted(z_positions)
 
         # Preallocating z counts
         photon_counts = np.zeros(len(z_positions))
-
-        # Getting original z to return to 
-        z_original = self.scanner_z._position_m
         
         # Opening all scanners and photon counters
         with self.scanner_x as x_con, self.scanner_y as y_con, self.scanner_z as z_con, self.photon_counter as pc:
@@ -149,24 +156,43 @@ class ConfocalControls:
                 z_con.set_position_m(z_loc)
                 photon_counts[ind_z] = pc.get_counts_per_second(dwell_time_s)
 
-            # Resetting back to original z position
-            z_con.set_position_m(z_original)
+        # Returning to original position
+        self.set_position_m(x_position=x_initial,
+                            y_position=y_initial,
+                            z_position=z_initial)
+
         
         return photon_counts,np.array(z_positions)
     
-    def tracking(self,x_position:float,y_position:float,z_position:float)->tuple[float,float,float,tuple[NDArray,NDArray,NDArray,NDArray,NDArray]]:
+    def tracking(self,x_position_m:float,y_position_m:float,z_position_m:float, go_to_tracked:bool=True)->tuple[float,float,float,tuple[NDArray,NDArray,NDArray,NDArray,NDArray]]:
+        """This is a tracking module that does a very simple 2D scan selecting the brightest point and proceeds to do a z scan over that point 
+
+        Args:
+            x_position (float): The position of x we want to track from 
+            y_position (float): The position of y we want to track from 
+            z_position (float): The position of z we want to track from 
+            go_to_tracked (bool, optional): If this is selected the last position of the confocal will be the tracked position
+                                             otherwise it will return to the previous position. Defaults to True.
+
+        Returns:
+            tuple[float,float,float,tuple[NDArray,NDArray,NDArray,NDArray,NDArray]]:  x_pos,y_pos,z_pos,(xy_2d_scan,z_1d_scan,x_positions,y_positions,z_positions)
+        """
+        # Getting the initial starting point 
+        x_initial,y_initial,z_initial = self.get_position_m()
+
+        # Creating the scanning linear spaces for the given tracking placement 
         xy_span = self.tracking_xy_span
         z_span = self.tracking_z_span
         dwell_time_s = self.tracking_dwell_time_s
         xy_number_of_points = self.tracking_xy_number_of_points
         z_number_of_points = self.tracking_z_number_of_points
 
-        x_positions = np.linspace(x_position-xy_span/2,x_position+xy_span/2,xy_number_of_points)
-        y_positions = np.linspace(y_position-xy_span/2,y_position+xy_span/2,xy_number_of_points)
-        z_positions = np.linspace(z_position-z_span/2,z_position+z_span/2,z_number_of_points)
+        x_positions = np.linspace(x_position_m-xy_span/2,x_position_m+xy_span/2,xy_number_of_points)
+        y_positions = np.linspace(y_position_m-xy_span/2,y_position_m+xy_span/2,xy_number_of_points)
+        z_positions = np.linspace(z_position_m-z_span/2,z_position_m+z_span/2,z_number_of_points)
 
 
-        xy_2d_scan, _ , _ = self.xy_scan(dwell_time_s,x_positions,y_positions,z_position)
+        xy_2d_scan, _ , _ = self.xy_scan(dwell_time_s,x_positions,y_positions,z_position_m)
 
         flat_index = np.argmax(xy_2d_scan)
 
@@ -175,9 +201,27 @@ class ConfocalControls:
         x_pos = x_positions[col_index]
         y_pos = y_positions[xy_number_of_points - row_index - 1]
 
+        # going to x and y position 
+        self.set_position_m(x_position=x_pos,
+                                y_position=y_pos,
+                                z_position=z_position_m)
+
+
         z_1d_scan, _ = self.z_scan(dwell_time_s,x_pos,y_pos,z_positions)
 
         z_pos = z_positions[np.argmax(z_1d_scan)]
+
+        if go_to_tracked:
+            # Going to tracked position 
+            self.set_position_m(x_position=x_pos,
+                                y_position=y_pos,
+                                z_position=z_pos)
+        else:
+            # Returning to original position
+            self.set_position_m(x_position=x_initial,
+                                y_position=y_initial,
+                                z_position=z_initial)
+
 
         return x_pos,y_pos,z_pos,(xy_2d_scan,z_1d_scan,x_positions,y_positions,z_positions)
 

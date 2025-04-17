@@ -20,7 +20,7 @@ from NV_ABJ.user_interfaces.image_scan_widget.generated_ui import Ui_image_scan_
 # Making a class that inherits the python base code produced by the user interface
 class ImageScanWidget(Ui_image_scan_widget):
     @dataclass
-    class ImageScanWidgetConfig:
+    class config:
         cmap:str = "pink"
         cursor_color:str = "g"
         cursor_shape:str = "o"
@@ -58,7 +58,9 @@ class ImageScanWidget(Ui_image_scan_widget):
                   confocal_controls:ConfocalControls,
                   default_save_config,
                   default_position_um:tuple[float,float,float] = None,
-                  image_scan_config:ImageScanWidgetConfig = ImageScanWidgetConfig(),
+                  image_scan_config:config = config(),
+                  running:bool = False,
+                  update_ui:bool = False,
                     *args, **kwargs):
         
         super().__init__(*args, **kwargs)
@@ -66,6 +68,8 @@ class ImageScanWidget(Ui_image_scan_widget):
         # Setting device controls 
         self.confocal_controls = confocal_controls
         self.default_save_config = default_save_config
+        self.running = running 
+        self.update_ui = update_ui
         
         if default_position_um == None:
             self.default_position_um = (0,0,0)
@@ -164,6 +168,7 @@ class ImageScanWidget(Ui_image_scan_widget):
                 self._cursor_update_location = False    
 
                 self.update_confocal_position()
+
 
 
 
