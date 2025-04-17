@@ -148,31 +148,41 @@ class ZScanWidget(Ui_z_scan_widget):
             self.z_scan_maximum_plot.remove()
 
         # Finding absolute max for data
-        maximum_ind = np.argmax(self._z_counts)
-        z_pos_max_um = self._z_positions[maximum_ind]*1e6
-        z_kcount_per_s_max = self._z_counts[maximum_ind]/1000
+        if len(self._z_counts) > 0 and len(self._z_positions) > 0:
+            # Finding absolute maximum              
+            maximum_ind = np.argmax(self._z_counts)
+            z_pos_max_um = self._z_positions[maximum_ind]*1e6
+            z_kcount_per_s_max = self._z_counts[maximum_ind]/1000
 
-    
-        # Adding Peaks if we want to show them
-        if self.show_peaks_push_button.isChecked():
+            # Updating the max text for the peak position 
+            self.z_max_position_label.setText(f"Z(μm): {z_pos_max_um:.3e}")
+            self.z_counts_max_label.setText(f"kCounts/s: {z_kcount_per_s_max:.3e}")
+        
+        else:
+            # Updating the max text for the peak position 
+            self.z_max_position_label.setText(f"Z(μm):")
+            self.z_counts_max_label.setText(f"kCounts/s:")
+        
+        # Adding peaks to graph or removing them as an empty scatter
+        if self.show_peaks_push_button.isChecked() and len(self._z_counts) > 0 and len(self._z_positions) > 0:
+        
             peaks, _ = find_peaks(self._z_counts,distance=self.peak_distance_spin_box.value())
 
-            
-
+            # Plotting peaks and maximum 
             self.z_scan_peaks_plot = self.ax.scatter(self._z_positions[peaks]*1e6,self._z_counts[peaks]/1000, c=self.z_scan_config.cursor_color,s=self.z_scan_config.cursor_size)
             self.z_scan_maximum_plot = self.ax.scatter(z_pos_max_um,z_kcount_per_s_max, c=self.z_scan_config.maximum_cursor_color,s=self.z_scan_config.cursor_max_size)
 
-        # Adding blanks if we don't want to show any peaks 
+
+
         else:
+            # Adding blanks if there are no peaks 
             self.z_scan_peaks_plot = self.ax.scatter([],[], c=self.z_scan_config.line_color)
             self.z_scan_maximum_plot = self.ax.scatter([],[], c=self.z_scan_config.line_color)
-    
+                
         self.canvas.figure.tight_layout()
         self.canvas.draw()
 
-        # Updating the max text for the peak position 
-        self.z_max_position_label.setText(f"Z(μm):{z_pos_max_um:.3e}")
-        self.z_counts_max_label.setText(f"kCounts/s:{z_kcount_per_s_max:.3e}")
+
 
 
     def update_z_scan(self,z_positions, z_scan_counts):
