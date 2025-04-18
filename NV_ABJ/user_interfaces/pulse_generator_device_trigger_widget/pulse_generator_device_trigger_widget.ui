@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AomTrigger</class>
- <widget class="QWidget" name="AomTrigger">
+ <class>pulse_generator_device_trigger_widget</class>
+ <widget class="QWidget" name="pulse_generator_device_trigger_widget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -28,7 +28,7 @@
    <property name="frameShadow">
     <enum>QFrame::Raised</enum>
    </property>
-   <widget class="QPushButton" name="toggle_aom_push_button">
+   <widget class="QPushButton" name="toggle_push_button">
     <property name="geometry">
      <rect>
       <x>4</x>
@@ -38,7 +38,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Turn On Aom</string>
+     <string>Turn On</string>
     </property>
    </widget>
    <widget class="QLabel" name="label">
@@ -54,7 +54,7 @@
      <string>Power(mW):</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="aom_power_entry">
+   <widget class="QLineEdit" name="power_entry">
     <property name="geometry">
      <rect>
       <x>70</x>

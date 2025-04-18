@@ -70,6 +70,8 @@ class ImageScanWidget(Ui_image_scan_widget):
         self.default_save_config = default_save_config
         self.running = running 
         self.update_ui = update_ui
+        # This is for the main gui to allow locking when other widgets are running 
+        self._running = False
         
         if default_position_um == None:
             self.default_position_um = (0,0,0)
@@ -252,8 +254,12 @@ class ImageScanWidget(Ui_image_scan_widget):
         self.canvas.draw()
 
     def scanning_thread(self,x_positions,y_positions):
+        self._running = True
+        self.freeze_gui()
 
         def update_after_scan():
+            self._running = False
+            self.unfreeze_gui()
             # adding new image to the ui
             self.update_image_scan(self.worker.xy_scan)
             self.full_image_scan_push_button.setEnabled(True)
@@ -279,8 +285,7 @@ class ImageScanWidget(Ui_image_scan_widget):
         self.thread.start()
 
         # Locking the buttons so you can't start a new scan 
-        self.full_image_scan_push_button.setEnabled(False)
-        self.local_image_scan_push_button.setEnabled(False)
+        
         # Unlocking the buttons 
         self.thread.finished.connect(update_after_scan)
 
@@ -315,3 +320,23 @@ class ImageScanWidget(Ui_image_scan_widget):
                                          self.z_confocal_spin_box.value()*1e-6)
         self.update_cursor()
   
+    def freeze_gui(self):
+        """This is a function that is called to freeze the GUI when another program is running 
+        """
+        self.full_image_scan_push_button.setEnabled(False)
+        self.local_image_scan_push_button.setEnabled(False)
+        self.update_cursor_location_push_button.setEnabled(False)
+        self.x_confocal_spin_box.setEnabled(False)
+        self.y_confocal_spin_box.setEnabled(False)
+        self.z_confocal_spin_box.setEnabled(False)
+
+    
+    def unfreeze_gui(self): 
+        """Returns control to all commands for the GUI after the programs have finished running 
+        """
+        self.full_image_scan_push_button.setEnabled(True)
+        self.local_image_scan_push_button.setEnabled(True)
+        self.update_cursor_location_push_button.setEnabled(True)
+        self.x_confocal_spin_box.setEnabled(True)
+        self.y_confocal_spin_box.setEnabled(True)
+        self.z_confocal_spin_box.setEnabled(True)

@@ -76,6 +76,7 @@ class ZScanWidget(Ui_z_scan_widget):
 
         # Adding form to window
         self.setupUi(window)
+        self._running = False
 
         # Setting Scan Range to Default Maximum of Z Scanner
         self.z_limits =  self.confocal_controls.scanner_z.position_limits_m
@@ -212,8 +213,9 @@ class ZScanWidget(Ui_z_scan_widget):
 
         
     def scanning_thread(self,z_positions):
-
+        self._running = True
         def update_after_scan():
+            self._running = False
             # adding new image to the ui
             self._z_positions = z_positions
             self._z_counts = self.worker.z_scan_counts
@@ -254,6 +256,16 @@ class ZScanWidget(Ui_z_scan_widget):
                                   self.z_scan_number_of_points_spin_box.value())
 
         self.scanning_thread(z_positions=z_positions)
+
+    def freeze_gui(self):
+        """This is a function that is called to freeze the GUI when another program is running 
+        """
+        self.z_scan_start_button.setEnabled(False)
+    
+    def unfreeze_gui(self): 
+        """Returns control to all commands for the GUI after the programs have finished running 
+        """
+        self.z_scan_start_button.setEnabled(True)
 
 
 

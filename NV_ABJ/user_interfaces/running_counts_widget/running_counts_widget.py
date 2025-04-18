@@ -69,6 +69,7 @@ class RunningCountsWidget(Ui_running_counts_widget):
 
         # Adding form to window
         self.setupUi(window)
+        self._running = False
 
         # # Setting Scan Range to Default Maximum of Z Scanner
         self.running_counts_dwell_time_spin_box.setValue(self.running_config.dwell_time_ms)
@@ -223,8 +224,10 @@ class RunningCountsWidget(Ui_running_counts_widget):
 
     def update_button(self):
         if self.running_counts_push_button.isChecked():
+            self._running = True
             self.running_counts_push_button.setText("Stop Running")
         else:
+            self._running = False
             self.running_counts_push_button.setText("Start Running")
 
     def update_ui(self):
@@ -232,6 +235,18 @@ class RunningCountsWidget(Ui_running_counts_widget):
             # Getting the counts per second  
             self.scanning_thread()
             self.update_running_counts_graph()
+
+    def freeze_gui(self):
+        """This is a function that is called to freeze the GUI when another program is running 
+        """
+        self.running_counts_push_button.setEnabled(False)
+        self.running_counts_delay_spin_box.setEnabled(False)
+    
+    def unfreeze_gui(self): 
+        """Returns control to all commands for the GUI after the programs have finished running 
+        """
+        self.running_counts_push_button.setEnabled(True)
+        self.running_counts_delay_spin_box.setEnabled(True)
 
 
 if __name__ == "__main__":
