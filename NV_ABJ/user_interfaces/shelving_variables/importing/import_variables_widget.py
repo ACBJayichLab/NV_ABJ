@@ -5,7 +5,7 @@ from pathlib import Path
 import os
 import shelve
 
-from generated_ui import Ui_import_variables_widget
+from NV_ABJ.user_interfaces.shelving_variables.importing.generated_ui import Ui_import_variables_widget
 #############################################################################################
 
 class ImportingVariablesWidget(Ui_import_variables_widget):
@@ -43,7 +43,6 @@ class ImportingVariablesWidget(Ui_import_variables_widget):
         reversed_file_path = reversed_file_path.replace("tad.","",1).replace("kab.","",1).replace("rid.","",1)
         file_path = reversed_file_path[::-1]
 
-        print(file_path)
         # Getting Variables 
         # Making a set and then a list removes any duplicate values 
         variables_to_import = list(set(self.single_variables.toPlainText().replace("\n","").split(",")))
@@ -62,15 +61,22 @@ class ImportingVariablesWidget(Ui_import_variables_widget):
                 return
         # Removing error message
         self.failure_text_label.setText(f"")
+        missing_import = False
         import_warning_text = "Did not import:"
         # Saving variables if no issues present
-        with shelve.open(file_path, 'r') as db:
+        try:
+            with shelve.open(file_path, 'r') as db:
 
-            for variable in variables_to_import:
-                try:
-                    self.importable_variables[variable](db[variable])
-                except:
-                    pass
+                for variable in variables_to_import:
+                    try:
+                        self.importable_variables[variable](db[variable])
+                    except:
+                        import_warning_text = import_warning_text+f"{variable},"
+                        missing_import = True
+                if missing_import:
+                    self.failure_text_label.setText(import_warning_text)
+        except:
+            self.failure_text_label.setText(f"Could not open file")            
       
 if __name__ == "__main__":
     from PyQt5 import QtWidgets
@@ -86,7 +92,8 @@ if __name__ == "__main__":
     variables ={
         "x_position_um":print_larger,
         "y_position_um":print_larger,
-        "z_position_um":print_larger
+        "z_position_um":print_larger,
+        "zzz":print_larger
     }
 
     main_window = QtWidgets.QMainWindow()

@@ -62,9 +62,19 @@ class ExportingVariablesWidget(Ui_exporting_variables):
                 return
         # Removing error message
         self.failure_text_label.setText(f"")
+        export_text = "Failed to export:"
+        failed_export = False
         # Saving variables if no issues present
-        with shelve.open(file_path) as db:
-            db.clear() # Removing previous implementations 
-            for variable in variables_to_save:
-                db[variable] = self.savable_variables[variable]
-        
+        try:
+            with shelve.open(file_path) as db:
+                db.clear() # Removing previous implementations 
+                for variable in variables_to_save:
+                    try:
+                        db[variable] = self.savable_variables[variable]
+                    except:
+                        export_text = export_text + f"{variable}, "
+                        failed_export = True
+            if failed_export:
+                self.failure_text_label.setText(export_text)
+        except:
+            self.failure_text_label.setText(f"Could not export file")
