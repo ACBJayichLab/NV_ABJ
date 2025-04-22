@@ -7,7 +7,9 @@ import datetime
 import fnmatch
 import uuid
 import h5py
+from dataclasses import dataclass
 
+from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import Sequence
 class DataManager:
     class file_type(StrEnum):
         hdf5 = "hdf5"
@@ -16,6 +18,25 @@ class DataManager:
         # txt = "txt"
         # json = "json"
     
+    @dataclass
+    class attributes:
+        # These should generally be filled pout by the user 
+        sample:str = None # Identifiable sample name 
+        diamond:str = None # Identifiable diamond name 
+        nv_orientation:list[int] = None # Orientations of the NV(s) in question 
+        notes:str = None
+
+        # These should be auto filled out by the measurement class called 
+        _measurement_class_name:str = None # This is the name of the class used to measure in python __name__ 
+        _measurement_class_inputs:dict[str:any] = None # This is going to be what inputs were to go into the measurement class {kwarg0:value0, kwarg1:value1,...}
+        _sequence_class:Sequence = None # This is the sequence class for the measurement 
+        _number_of_measurements_per_point:int = None # How many times you average at a point before moving on to the next 
+        _number_of_points_per_sweep:int = None # How many points for a given sweep
+        _number_of_sweeps:int = None # How many sweeps for the overall average
+        _time_of_measurement:float = None # Seconds from epoch saved 
+
+
+
 
     def __init__(self, default_save_location, default_save_type=file_type.hdf5, uuid_length:int = 10):
         self.default_save_location = default_save_location
@@ -61,7 +82,7 @@ class DataManager:
         
         return file_name, file_path
     
-    def save_hdf5(self,data_tag:str, data_dict:dict,file_attributes:dict = None,folder_path:str=None,file_path:str=None)-> str:
+    def save_hdf5(self, data_dict:dict, attr:attributes = None,folder_path:str=None,file_path:str=None)-> str:
         """This is the save method for the hdf5 format it takes a dictionary of data but is also able to take a list of
         attributes to make searching easier, a folder path if you don't want to save it as the default folder and a 
         file path if you want overwrite the default file save mechanism. File path will override the folder path and file extension 
@@ -77,7 +98,7 @@ class DataManager:
         Returns:
             str: file path 
         """
-
+        data_tag = str(attr.__dict__["_measurement_class_name"])
 
         if folder_path == None and file_path == None:
             # Default  save method 
@@ -97,14 +118,37 @@ class DataManager:
                 f.create_dataset(str(data_key), data = data_dict[data_key])
 
             # Adding attributes to file if needed
-            if file_attributes != None:
-                for attribute_key in file_attributes:
-                    f.attrs[attribute_key] = file_attributes[attribute_key]
+            if attr != None:
+                for attribute_key in attr.__dict__:
+                    if (attr_value := attr.__dict__[attribute_key]) != None:
+                        f.attrs[attribute_key] = attr_value
             
         return _file_path
     
     def load_hdf5(self, file_path:str):
 
+        data_dict = {}
+
+        with h5py.File(file_path, 'r') as f: 
+            data_set_names = f.keys()
+            for data_name in data_set_names:
+                data_dict[data_name] = f[data_name][:]
+    
+        return data_dict
+    
+
+    def search_for_hdf5(self, folder_path:str, attr:attributes)->list[str]:
+        """This searches through a folder only to a single level down and filters 
+        through the file attributes that to find ones that match what you are looking for.
+        This then returns a list of file paths for anything that matches 
+
+        Args:
+            folder_path (str): A path to the folder you want to search through
+            attr (attributes): Attributes we would like to match using the attributes class in DataManager
+
+        Returns:
+            list[str]: list of file paths where the attributes match
+        """
         with h5py.File(file_path, 'r') as f: 
             print(f.attrs.keys())
 
@@ -118,19 +162,25 @@ class DataManager:
 
 
 if __name__ == "__main__":
-    data_manager = DataManager(r"C:\Users\LTSPM2\Desktop\test")
+    data_manager = DataManager(r"C:\Users\schwa\Desktop\New folder")
     import numpy as np
     arr = np.random.randn(1000)
 
     data = {"data":arr}
 
-    attributes = {"description": "CWESR", "points":"100","averages":"20"}
+    attr = DataManager.attributes()
+    attr.diamond = "L036"
+    attr.sample = "NbN CPW V3"
+    attr.nv_orientation = [111,101]
 
-    for i in range(100):
-        file_path = data_manager.save_hdf5(data_dict=data,data_tag="name", file_attributes=attributes)
-        print(file_path)
+    # print(attr.__dict__.keys())
 
-    data_manager.load_hdf5(r"C:\Users\LTSPM2\Desktop\test\2025-04-21\name_100_1cdab32732.hdf5")
+
+    # for i in range(100):
+    #     file_path = data_manager.save_hdf5(data_dict=data, attr=attr)
+    #     print(file_path)
+
+    print(data_manager.load_hdf5(r"C:\Users\schwa\Desktop\New folder\2025-04-22\None_100_8294970afd.hdf5"))
 
         
 
