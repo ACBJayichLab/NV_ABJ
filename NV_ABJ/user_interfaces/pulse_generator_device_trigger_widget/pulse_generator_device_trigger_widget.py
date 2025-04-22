@@ -16,7 +16,7 @@ class PulseGeneratorTriggerWidget(Ui_pulse_generator_device_trigger_widget):
                  trigger_device:SequenceDevice,
                  pulse_generator:PulseGenerator,
                  photo_diode:PhotoDiode = None,
-                 pulse_generator_controlled_devices:list = None,
+                 pulse_controlled_devices:list = None,
                  on_text:str = "Turn On",
                  off_text:str = "Turn Off",
                  *args, **kwargs):
@@ -30,10 +30,10 @@ class PulseGeneratorTriggerWidget(Ui_pulse_generator_device_trigger_widget):
         self.on_text = on_text
         self.off_text = off_text
         self.pulse_generator = pulse_generator
-        if pulse_generator_controlled_devices != None:
-            self.pulse_generator_controlled_devices = pulse_generator_controlled_devices
+        if pulse_controlled_devices != None:
+            self.pulse_controlled_devices = pulse_controlled_devices
         else:
-            self.pulse_generator_controlled_devices = [self.trigger_device]
+            self.pulse_controlled_devices = [self.trigger_device]
 
         # Calling to update text this will default toggle the to be off
         self.trigger_device.device_status = True
@@ -66,7 +66,7 @@ class PulseGeneratorTriggerWidget(Ui_pulse_generator_device_trigger_widget):
             self.trigger_device.device_status = True
 
         self.pulse_generator.stop()
-        self.pulse_generator.update_devices(self.pulse_generator_controlled_devices)
+        self.pulse_generator.update_devices(self.pulse_controlled_devices)
 
     def freeze_gui(self):
         """This is a function that is called to freeze the GUI when another program is running 
@@ -90,7 +90,7 @@ if __name__ == "__main__":
                                      pulse_generator=pulse_blaster,
                                      trigger_device=green_aom_trigger,
                                      photo_diode=green_photo_diode,
-                                     pulse_generator_controlled_devices=[green_aom_trigger,microwave_switch_1])
+                                     pulse_controlled_devices=[green_aom_trigger])
 
     main_window.show()
     app.exec()
