@@ -10,16 +10,17 @@ from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import Se
 
 
 class SpbiclPulseBlaster(PulseGenerator):
-    def __init__(self,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
+    def __init__(self,spbicl_path:str=None,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
         """This class interfaces with the pulse blaster using the command line interpreter provided by 
         SpinCore as an exe "spbicl.exe" 
 
         Args:
-            devices (list): list of sequence controlled devices 
+            spbicl_path (str, optional): path to the spbicl.exe program. When set to None you must have the spbicl in your enviroment variables 
             clock_frequency_megahertz (float, optional): What the pulse blaster will be set to. Defaults to 500.
             maximum_step_time_s (float, optional): This is the maximum time a step can take if it is longer it will be broken into n steps 
             available_ports (int, optional): How many bits the pulse blaster can control. Defaults to 23
         """
+        self.spbicl_path = spbicl_path
         self.clock_frequency_megahertz = clock_frequency_megahertz
         self.maximum_step_time_s = maximum_step_time_s
         self.available_ports = available_ports
@@ -58,7 +59,13 @@ class SpbiclPulseBlaster(PulseGenerator):
 
             # Running the load command for spincore cli
             command = f"spbicl load {str(sequence_file_path)} {str(self.clock_frequency_megahertz)}"
-            response = subprocess.call(command,stdout = subprocess.DEVNULL)#, stderr=subprocess.STDOUT)
+
+            if self.spbicl_path == None:
+                response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+            else:
+                command = ".\\"+command
+                response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT, cwd=self.spbicl_path)
 
         if response == -1:
             raise Exception("Failed to load program to pulse blaster")
@@ -76,8 +83,13 @@ class SpbiclPulseBlaster(PulseGenerator):
         Returns:
             int: This is zero that indicates correct starting and -1 if it failed to load to the device other errors may have different numbers
         """
-        command = ["spbicl","start"]        
-        response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        command = ["spbicl","start"]
+        if self.spbicl_path == None:
+            response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+        else:
+            command[0] = ".\\"+command[0]
+            response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT, cwd=self.spbicl_path)
         
         # Prevents updating devices until stopped 
         self._locked_commands = True
@@ -98,7 +110,12 @@ class SpbiclPulseBlaster(PulseGenerator):
        
         """
         command = ["spbicl","stop"]
-        response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        if self.spbicl_path == None:
+            response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+        else:  
+            command[0] = ".\\"+command[0]
+            response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT, cwd=self.spbicl_path)
         
         # Unlocks commands for other items 
         self._locked_commands = False
