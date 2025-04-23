@@ -149,38 +149,28 @@ class DataManager:
         Returns:
             list[str]: list of file paths where the attributes match
         """
-        with h5py.File(file_path, 'r') as f: 
-            print(f.attrs.keys())
-
-
-
+        attributes = {}
+        for attr_key in attr.__dict__.keys():
+            if attr.__dict__[attr_key] != None:
+                attributes[attr_key] = attr.__dict__[attr_key]
+        attributes_keys = attributes.keys()
         
+        dir_list = os.listdir(folder_path)
 
+        file_paths = []
 
+        for file in dir_list:
+            add_path = True
+            try:
+                with h5py.File(os.path.join(folder_path,file), 'r') as f: 
 
+                    for attribute_key in attributes_keys:
+                        if not (attributes[attribute_key] in f.attrs[attribute_key]):
+                            add_path = False                            
+                if add_path:
+                    file_paths.append(file)
+            except:
+                pass
 
-
-
-if __name__ == "__main__":
-    data_manager = DataManager(r"C:\Users\schwa\Desktop\New folder")
-    import numpy as np
-    arr = np.random.randn(1000)
-
-    data = {"data":arr}
-
-    attr = DataManager.attributes()
-    attr.diamond = "L036"
-    attr.sample = "NbN CPW V3"
-    attr.nv_orientation = [111,101]
-
-    # print(attr.__dict__.keys())
-
-
-    # for i in range(100):
-    #     file_path = data_manager.save_hdf5(data_dict=data, attr=attr)
-    #     print(file_path)
-
-    print(data_manager.load_hdf5(r"C:\Users\schwa\Desktop\New folder\2025-04-22\None_100_8294970afd.hdf5"))
-
-        
+        return file_paths
 
