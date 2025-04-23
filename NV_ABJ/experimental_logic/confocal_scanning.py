@@ -6,6 +6,8 @@ from numpy.typing import NDArray
 from NV_ABJ.abstract_interfaces.photon_counter import PhotonCounter
 from NV_ABJ.abstract_interfaces.scanner import ScannerSingleAxis
 
+import time
+
 class ConfocalControls:
     def __init__(self,scanner_x:ScannerSingleAxis,scanner_y:ScannerSingleAxis,scanner_z:ScannerSingleAxis,photon_counter:PhotonCounter,
                 tracking_xy_span:float = 1.5e-6,tracking_z_span:float = 3e-6,tracking_dwell_time_s:float = 5e-3,tracking_xy_number_of_points:int = 10,tracking_z_number_of_points:int = 20):
@@ -102,7 +104,9 @@ class ConfocalControls:
                 else:
                     for ind_x,x_loc in enumerate(reversed_x):
                         x_con.set_position_m(x_loc)
+                        start = time.time()
                         counts = pc.get_counts_per_second(dwell_time_s=dwell_time_s)
+                        print(start-time.time())
                         line_counts[(x_length-1)-ind_x] = counts
 
                 # Adds a full line at a time 
@@ -227,3 +231,6 @@ class ConfocalControls:
 
 
 
+if __name__ == "__main__":
+    from experimental_configuration import *
+    
