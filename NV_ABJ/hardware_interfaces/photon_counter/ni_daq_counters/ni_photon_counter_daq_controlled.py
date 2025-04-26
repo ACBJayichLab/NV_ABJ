@@ -54,6 +54,14 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
             int: the raw number of counts that the photon counter has output 
         """
 
+        if not self._load_ext_triggered:
+
+            if self.ext_trig_read_task != None:
+                self.ext_trig_read_task.close()
+                self.ext_trig_read_task = None
+
+            self._load_ext_triggered = True
+
         if self._load_self_triggered:
             # Creating tasks to run
             self.read_task = nidaqmx.Task() 
@@ -155,6 +163,17 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         Returns:
             int: the raw number of counts that the photon counter has output 
         """
+        if not self._load_self_triggered:
+
+            if self.read_task != None:
+                self.read_task.close()
+                self.read_task = None
+            
+            if self.samp_clk_task != None:
+                self.samp_clk_task.close()
+                self.samp_clk_task = None
+
+            self._load_self_triggered = True
 
         if self._load_ext_triggered:
             self.ext_trig_read_task = nidaqmx.Task()
@@ -175,9 +194,9 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
             self._load_ext_triggered = False
         
             
-        self.read_task.start()
-        edge_counts = self.read_task.read(number_of_samples_per_channel=number_of_data_taking_cycles*2,timeout=100)
-        self.read_task.stop()
+        self.ext_trig_read_task.start()
+        edge_counts = self.ext_trig_read_task.read(number_of_samples_per_channel=number_of_data_taking_cycles*2,timeout=100)
+        self.ext_trig_read_task.stop()
         list_counts = np.array(edge_counts[1::2])-np.array(edge_counts[::2])
 
         return list_counts
@@ -203,6 +222,10 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
             self.timebase = f"{int(self.max_clock*(1e-3))}kHzTimebase"
         else:
             raise ValueError("Unknown time base for sample clock")
+        
+        self.samp_clk_task = None
+        self.read_task = None
+        self.ext_trig_read_task = None
 
 
     def close_connection(self):
@@ -211,21 +234,17 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         self._load_self_triggered = True
         self._load_ext_triggered = True
 
-        try:
+        if self.read_task != None:
             self.read_task.close()
-        except:
-            pass
-
-        try:
+            self.read_task = None
+        
+        if self.samp_clk_task != None:
             self.samp_clk_task.close()
-        except:
-            pass
-
-
-        try:
+            self.samp_clk_task = None
+        
+        if self.ext_trig_read_task != None:
             self.ext_trig_read_task.close()
-        except:
-            pass
+            self.ext_trig_read_task = None
 
 
     @property
@@ -237,29 +256,3 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
                        Port: {self.port},
                        Timeout Time (s):{self.timeout_waiting_for_data_s}"""
         return response
-
-
-if __name__ == "__main__":
-    from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import Sequence
-    from experimental_configuration import apd_trigger_1,pulse_blaster,signal_generator_1,microwave_switch_1
-    import time
-    import timeit
-    dwell_time_s = 400e-9
-    wait_time_s = 10e-6
-    mw_frequency = 10e6
-
-    photon_counter =  NiPhotonCounterDaqControlled(device_name="PXI1Slot3",counter_pfi="pfi0",trigger_pfi="pfi1")
-
-    with photon_counter(True) as pc:
-        def get():
-            pc.get_counts_raw(dwell_time_s)
-        t = timeit.Timer(stmt=get)  
-        time_num = 30
-        ave_time = t.timeit(time_num)/time_num
-
-    grid = 120
-    print(f"Average Time:{ave_time}, Additional Time for a {grid}x{grid}:{(ave_time-dwell_time_s)*grid*grid}")
-
-# Initial Version = Average Time:0.0017133100001956337, Additional Time for a 120x120:24.665904002817125
-# Committing tasks prior = Average Time:0.0004874633334111422, Additional Time for a 120x120:7.013712001120449
-
