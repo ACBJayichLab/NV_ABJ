@@ -98,7 +98,9 @@ class ConfocalControls:
                 if ind_y%2 == 0:
                     for ind_x,x_loc in enumerate(x_positions):
                         x_con.set_position_m(x_loc)
+                        start_time = time.time()
                         counts = pc.get_counts_per_second(dwell_time_s=dwell_time_s)
+                        print((time.time()-start_time)*1e3)
                         line_counts[ind_x] = counts
 
                 else:
@@ -106,7 +108,7 @@ class ConfocalControls:
                         x_con.set_position_m(x_loc)
                         start = time.time()
                         counts = pc.get_counts_per_second(dwell_time_s=dwell_time_s)
-                        print(start-time.time())
+                        print((time.time()-start)*1e3)
                         line_counts[(x_length-1)-ind_x] = counts
 
                 # Adds a full line at a time 
@@ -232,5 +234,53 @@ class ConfocalControls:
 
 
 if __name__ == "__main__":
-    from experimental_configuration import *
+
+    from NV_ABJ.hardware_interfaces.scanner.ni_daq_scanner.ni_daq_scanner import NiDaqSingleAxisScanner
+    # Adding FSM controls
+    confocal_x = NiDaqSingleAxisScanner(conversion_volts_per_meter_setting=10/(50e-6),
+                                                device_name_output="PXI1Slot5",
+                                                channel_name_output="ao0",
+                                                position_limits_m=(-50e-6,50e-6))
+
+    confocal_y = NiDaqSingleAxisScanner(conversion_volts_per_meter_setting=10/(50e-6),
+                                                device_name_output="PXI1Slot5",
+                                                channel_name_output="ao1",
+                                                position_limits_m=(-50e-6,50e-6))
+
+
+    confocal_z = NiDaqSingleAxisScanner(conversion_volts_per_meter_setting=10/(50e-6),
+                                                device_name_output="PXI1Slot4",
+                                                channel_name_output="ao3",
+                                                position_limits_m=(-50e-6,50e-6))
+    
+    from NV_ABJ.hardware_interfaces.photon_counter.ni_daq_counters.ni_photon_counter_daq_controlled import NiPhotonCounterDaqControlled
+
+    # Adding the photon counter
+    photon_counter_1 = NiPhotonCounterDaqControlled(device_name="PXI1Slot3",
+                                                    counter_pfi="pfi0",
+                                                    trigger_pfi="pfi2")
+
+
+    # from NV_ABJ.experimental_logic.confocal_scanning import ConfocalControls
+    # Setting up controls 
+    confocal_controls = ConfocalControls(confocal_x,confocal_y,confocal_z,photon_counter_1)
+
+    x_positions = np.linspace(-50e-6,50e-6,5)
+    y_positions = np.linspace(-50e-6,50e-6,5)
+
+    confocal_controls.set_position_m(0,0,0)
+
+    # start_time = time.time()
+    # confocal_controls.xy_scan(5e-3,x_positions=x_positions,y_positions=y_positions,z_position=-10e-6)
+    # print(time.time()-start_time)
+
+    dwell_time = 5e-3
+    dimension = 80*80
+    start = time.time()
+
+    with photon_counter_1:
+        for i in range(dimension):
+            photon_counter_1.get_counts_per_second(dwell_time)
+    print((time.time()-start)-dimension*dwell_time)
+
     
