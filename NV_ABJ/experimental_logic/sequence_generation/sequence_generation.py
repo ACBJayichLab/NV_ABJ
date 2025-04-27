@@ -168,9 +168,10 @@ class Sequence:
                 inverted_devices.add(device)
                 inverted_devices_addresses.add(device.address)
 
-        temp_steps = copy.deepcopy(self.steps)
         # Taking care of any inverted outputs 
         if inverted_devices != set():
+            # Becuase we are inverting bits we want an independent copy of the steps to not affect the sequence 
+            temp_steps = copy.deepcopy(self.steps)
 
             for ind,step in enumerate(temp_steps):
                 devices_on = step[1]
@@ -181,10 +182,9 @@ class Sequence:
                     else:
                         devices_on.add(device)
 
-                        
-
-
                 temp_steps[ind] = (step[0],devices_on)
+        else:
+            temp_steps = self.steps
 
 
         # Adding in the first step
@@ -411,7 +411,7 @@ if __name__ == "__main__":
     dev1 = SequenceDevice(config={"address":0,
                                             "device_label":"0",
                                             "delayed_to_on_ns":0,
-                                              "inverted_output":True}
+                                              "inverted_output":False}
                                     , device_status = False)
 
     dev2 = SequenceDevice(config={"address":1,
@@ -427,7 +427,8 @@ if __name__ == "__main__":
     seq = Sequence()
 
     # seq.add_step([dev2,dev3],3000)
-    seq.add_step([],1000)
+    seq.add_step([dev1],1000)
+    seq.add_step([dev2],1000)
     seq.add_devices([dev1,dev2])
 
     print("\n Instruction Set")
