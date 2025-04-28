@@ -98,17 +98,13 @@ class ConfocalControls:
                 if ind_y%2 == 0:
                     for ind_x,x_loc in enumerate(x_positions):
                         x_con.set_position_m(x_loc)
-                        start_time = time.time()
                         counts = pc.get_counts_per_second(dwell_time_s=dwell_time_s)
-                        print((time.time()-start_time)*1e3)
                         line_counts[ind_x] = counts
 
                 else:
                     for ind_x,x_loc in enumerate(reversed_x):
                         x_con.set_position_m(x_loc)
-                        start = time.time()
                         counts = pc.get_counts_per_second(dwell_time_s=dwell_time_s)
-                        print((time.time()-start)*1e3)
                         line_counts[(x_length-1)-ind_x] = counts
 
                 # Adds a full line at a time 
