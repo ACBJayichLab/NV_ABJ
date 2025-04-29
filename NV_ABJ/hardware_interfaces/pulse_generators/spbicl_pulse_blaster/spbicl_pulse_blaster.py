@@ -6,23 +6,25 @@ from os.path import join
 from NV_ABJ import PulseGenerator,seconds
 
 # Importing sequence 
-from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import Sequence
+from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import Sequence, SequenceDevice
 
 
 class SpbiclPulseBlaster(PulseGenerator):
-    def __init__(self,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
+    def __init__(self,spbicl_path:str=None,controlled_devices:list[SequenceDevice]=None,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
         """This class interfaces with the pulse blaster using the command line interpreter provided by 
         SpinCore as an exe "spbicl.exe" 
 
         Args:
-            devices (list): list of sequence controlled devices 
+            spbicl_path (str, optional): path to the spbicl.exe program. When set to None you must have the spbicl in your enviroment variables 
             clock_frequency_megahertz (float, optional): What the pulse blaster will be set to. Defaults to 500.
             maximum_step_time_s (float, optional): This is the maximum time a step can take if it is longer it will be broken into n steps 
             available_ports (int, optional): How many bits the pulse blaster can control. Defaults to 23
         """
+        self.spbicl_path = spbicl_path
         self.clock_frequency_megahertz = clock_frequency_megahertz
         self.maximum_step_time_s = maximum_step_time_s
         self.available_ports = available_ports
+        self.controlled_devices = controlled_devices
         self._locked_commands = False
     
     def make_connection(self):
@@ -58,7 +60,13 @@ class SpbiclPulseBlaster(PulseGenerator):
 
             # Running the load command for spincore cli
             command = f"spbicl load {str(sequence_file_path)} {str(self.clock_frequency_megahertz)}"
-            response = subprocess.call(command,stdout = subprocess.DEVNULL)#, stderr=subprocess.STDOUT)
+
+            if self.spbicl_path == None:
+                response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+            else:
+                command = ".\\"+command
+                response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, cwd=self.spbicl_path)
 
         if response == -1:
             raise Exception("Failed to load program to pulse blaster")
@@ -76,8 +84,13 @@ class SpbiclPulseBlaster(PulseGenerator):
         Returns:
             int: This is zero that indicates correct starting and -1 if it failed to load to the device other errors may have different numbers
         """
-        command = ["spbicl","start"]        
-        response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        command = ["spbicl","start"]
+        if self.spbicl_path == None:
+            response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+        else:
+            command[0] = ".\\"+command[0]
+            response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, cwd=self.spbicl_path)
         
         # Prevents updating devices until stopped 
         self._locked_commands = True
@@ -98,7 +111,12 @@ class SpbiclPulseBlaster(PulseGenerator):
        
         """
         command = ["spbicl","stop"]
-        response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        if self.spbicl_path == None:
+            response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+        else:  
+            command[0] = ".\\"+command[0]
+            response = subprocess.call(command,stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, cwd=self.spbicl_path)
         
         # Unlocks commands for other items 
         self._locked_commands = False
@@ -143,11 +161,16 @@ class SpbiclPulseBlaster(PulseGenerator):
             # Uses a default timing of 1 this will be replaces later but prevents the duration error 
             devices_on = []
             for dev in devices:
+                seq.devices.add(dev.config)
                 if dev.device_status:
                     devices_on.append(dev)
-            seq.add_step(devices=devices_on, duration_ns=1e9)
-            seq_text = self.generate_sequence(seq)
 
+            seq.add_step(devices=devices_on, duration_ns=1e9)
+
+            if self.controlled_devices != None:
+                seq.add_devices(self.controlled_devices)
+
+            seq_text = self.generate_sequence(seq)
             # If no devices are on we want to clear the output
             if len(devices_on) == 0:
                 self.clear()
@@ -172,8 +195,14 @@ class SpbiclPulseBlaster(PulseGenerator):
             is a more general function and you may want to generate sequences and save them without 
         """       
         sequence_text = ""
+        
+        # If the user has defined all controlled devices and would like to have the pulse blaster control for inverted ports
+        if self.controlled_devices != None:
+            sequence_class.add_devices(self.controlled_devices)
+
         # Gets a linear time sequence from the sequence generation class
         instructions, sub_routines = sequence_class.instructions(wrapped=True,allow_subroutine=True)
+
         sequence_length = len(instructions)-1
 
         def addresses_to_line(device_addresses:list):
@@ -294,3 +323,43 @@ class SpbiclPulseBlaster(PulseGenerator):
 # # # # # #  ,-\ `-.' /.'  /
 # # # # # # '---`----'----' Art by Hayley Jane Wakenshaw
 # # # # # ##############################################################################################################
+
+if __name__ == "__main__":
+    from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import SequenceDevice
+    import time 
+
+    d1 = SequenceDevice(config={"address":0,
+                                            "device_label":"AOM Trigger",
+                                            "delayed_to_on_ns":0,
+                                            "inverted_output":True}
+                                    , device_status = True)
+    
+    d2 = SequenceDevice(config={"address":1,
+                                            "device_label":"AOM Trigger",
+                                            "delayed_to_on_ns":0,
+                                            "inverted_output":True}
+                                    , device_status = True)
+
+    d3 = SequenceDevice(config={"address":2,
+                                            "device_label":"AOM Trigger",
+                                            "delayed_to_on_ns":0,
+                                            "inverted_output":False}
+                                    , device_status = False)
+    
+    d4 = SequenceDevice(config={"address":3,
+                                            "device_label":"AOM Trigger",
+                                            "delayed_to_on_ns":0,
+                                            "inverted_output":False}
+                                    , device_status = True)
+        
+    spbicl_path=r"C:\SpinCore\SpinAPI\interpreter"
+    pulse_blaster = SpbiclPulseBlaster(spbicl_path=r"C:\SpinCore\SpinAPI\interpreter",controlled_devices=[d1,d2,d3,d4])
+
+    seq = Sequence()
+    seq.add_step([d1],10000)
+    seq_text = pulse_blaster.generate_sequence(sequence_class=seq)
+    pulse_blaster.load(sequence=seq_text)
+    pulse_blaster.start()
+    # pulse_blaster.update_devices([d4])
+
+

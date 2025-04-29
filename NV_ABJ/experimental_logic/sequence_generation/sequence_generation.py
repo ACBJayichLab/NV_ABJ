@@ -1,6 +1,7 @@
 __all__ = ["SequenceDevice","SequenceSubset","Sequence","SequenceDeviceConfiguration"]
 
 from dataclasses import dataclass
+import copy
 
 @dataclass(frozen=True)
 class SequenceDeviceConfiguration:
@@ -10,6 +11,7 @@ class SequenceDeviceConfiguration:
     address:int # What the device that is feed into the sequence class will use to identify the device 
     device_label:str # The name that will be used for labeling and graphing
     delayed_to_on_ns:int = 0 # How many nano-seconds it takes to turn on must be greater than or equal to zero
+    inverted_output:bool = False # If the output needs to be inverted to function. Inverted means when pulse blaster powers pin the device turns off
 
     def __lt__(self,other):
         return self.delayed_to_on_ns < other.delayed_to_on_ns
@@ -58,7 +60,7 @@ class SequenceSubset:
         self.steps = []
         self.loop_steps = loop_steps # when set to zero it wont be looped
         self.devices = set()
- 
+
     def add_step(self,devices:list=[],duration_ns:float=0):
         """Adds a step to the sub sequence 
 
@@ -146,7 +148,7 @@ class Sequence:
 
         # Finding the time without delays added on 
         time_ns = 0 # Keeping track of the nominal time 
-        step_times_ns = set() # Set of all unique times 
+        step_times_ns = set([0]) # Set of all unique times 
 
         sequence_devices = {} # A list of the devices broken into linear time 
         devices_with_delays = set() # A list of all devices that have delays 
@@ -157,9 +159,37 @@ class Sequence:
             if device.delayed_to_on_ns > 0:
                 devices_with_delays.add(device)
 
+
+        # Finding any inverted output devices
+        inverted_devices = set()
+        inverted_devices_addresses = set()
+        for device in self.devices:
+            if device.inverted_output:
+                inverted_devices.add(device)
+                inverted_devices_addresses.add(device.address)
+
+        # Taking care of any inverted outputs 
+        if inverted_devices != set():
+            # Becuase we are inverting bits we want an independent copy of the steps to not affect the sequence 
+            temp_steps = copy.deepcopy(self.steps)
+
+            for ind,step in enumerate(temp_steps):
+                devices_on = step[1]
+                for device in inverted_devices:
+                    # Remove the address if it is in the instructions and add it if it is not in the instructions 
+                    if device in devices_on:
+                        devices_on.remove(device)
+                    else:
+                        devices_on.add(device)
+
+                temp_steps[ind] = (step[0],devices_on)
+        else:
+            temp_steps = self.steps
+
+
         # Adding in the first step
-        previous_duration = self.steps[0][0]
-        devices_previously_on = self.steps[0][1]
+        previous_duration = temp_steps[0][0]
+        devices_previously_on = temp_steps[0][1]
         devices_on_before_start = set()
         
         devices_previously_on_sorted = sorted(devices_previously_on)
@@ -178,7 +208,7 @@ class Sequence:
         step_times_ns.add(time_ns)
         
         # Adds the times the device is already on from the list 
-        for ind,step in enumerate(self.steps[1:]):
+        for ind,step in enumerate(temp_steps[1:]):
             duration = step[0] 
             devices = step[1]
 
@@ -281,6 +311,7 @@ class Sequence:
                     temp.remove(time)
             step_times_ns = temp
 
+
         return sequence_devices, sorted(step_times_ns)
 
 
@@ -289,7 +320,7 @@ class Sequence:
     def instructions(self,allow_subroutine:bool = True,wrapped:bool=True):
         # We want to start with what the linear time has already given us time wise
         linear_time_dict, step_times = self.linear_time_sequence(wrapped=wrapped)
-        
+
         instruction_set = []
         
         # We want to convert into a list of instructions 
@@ -298,7 +329,8 @@ class Sequence:
 
             for device_address in linear_time_dict:
                 if time in linear_time_dict[device_address]["on_times_ns"]:
-                    instruction_set[ind][1].add(device_address)
+                    instruction_set[ind][1].add(device_address)                   
+
 
         if allow_subroutine:
 
@@ -369,3 +401,39 @@ class Sequence:
                 instructions[ind] = (False,item,0)
 
         return instructions,sub_routines
+    
+    def add_devices(self, devices_to_add:list[SequenceDevice]):
+        """if you have inverted devices that are not called you should add your devices here"""
+        for device in devices_to_add:
+            self.devices.add(device.config)    
+
+if __name__ == "__main__":
+    dev1 = SequenceDevice(config={"address":0,
+                                            "device_label":"0",
+                                            "delayed_to_on_ns":0,
+                                              "inverted_output":False}
+                                    , device_status = False)
+
+    dev2 = SequenceDevice(config={"address":1,
+                                            "device_label":"1",
+                                            "delayed_to_on_ns":0}
+                                    , device_status = False)
+
+    dev3 = SequenceDevice(config={"address":2,
+                                            "device_label":"2",
+                                            "delayed_to_on_ns":0}
+                                    , device_status = False)
+
+    seq = Sequence()
+
+    # seq.add_step([dev2,dev3],3000)
+    seq.add_step([dev1],1000)
+    seq.add_step([dev2],1000)
+    seq.add_devices([dev1,dev2])
+
+    print("\n Instruction Set")
+    print(seq.instructions(wrapped=False,allow_subroutine=False))
+    # devices,times = seq.linear_time_sequence()
+    # print(times)
+    # for line in devices:
+    #     print(devices[line]["on_times_ns"])

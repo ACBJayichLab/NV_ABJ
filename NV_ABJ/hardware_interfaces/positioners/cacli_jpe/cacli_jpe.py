@@ -10,7 +10,7 @@ import time
 from enum import IntEnum
 
 # importing abstract class
-from NV_ABJ import PositionerSingleAxis
+from NV_ABJ.abstract_interfaces.positioner import PositionerSingleAxis
 
 class CacliVersion(IntEnum):
     """These are the different versions of Calci that are used so far and they have slightly different command structures 
@@ -24,9 +24,9 @@ class CacliVersion(IntEnum):
 class CacliJpeCadm2(PositionerSingleAxis):
 
     def __init__(self,piezo_driver_target:str,piezo_address:int,piezo_stage:str,temperature_kelvin:float,
-                 frequency_hz:int,relative_step_size_percent:float,
-                 torque_factor:int = 1,cacli_version:CacliVersion = CacliVersion.v7,
-                 time_out:float = 0.1,delay_between_attempts_s:int = 5,number_of_attempts:int = 5):
+                frequency_hz:int,relative_step_size_percent:float,
+                torque_factor:int = 1,cacli_version:CacliVersion = CacliVersion.v7,
+                time_out:float = 0.1,delay_between_attempts_s:int = 5,number_of_attempts:int = 5):
         """This is a basic command method for controlling the JPE positioners over USB using the cacli commands 
             This treats the JPE as a PositionerSingleAxis class it is for controlling a CADM2 module by JPE
 
@@ -59,7 +59,7 @@ class CacliJpeCadm2(PositionerSingleAxis):
     #########################################################################################################################################################################    
     # Implementation of the abstract signal generator functions 
     #########################################################################################################################################################################    
-   
+
     def move_positioner(self,direction,steps):
         """
         The move command starts moving an actuator with specified parameters. If an RSM or OEM2 is

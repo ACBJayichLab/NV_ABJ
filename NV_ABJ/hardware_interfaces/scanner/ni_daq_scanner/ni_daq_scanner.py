@@ -20,9 +20,9 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
 
 
     def __init__(self,conversion_volts_per_meter_setting:float, device_name_output:str,channel_name_output:str,
-                 device_name_input:str = None,channel_name_input:str = None,
-                 position_limits_m:tuple = (None,None),conversion_volts_per_meter_getting:float = None,
-                 timeout_waiting_for_voltage_set_s:int = 10,stability_voltage_difference:float = 0.004,voltage_sample_rate:int=1000,samples_per_read:int=100):
+                device_name_input:str = None,channel_name_input:str = None,
+                position_limits_m:tuple = (None,None),conversion_volts_per_meter_getting:float = None,
+                timeout_waiting_for_voltage_set_s:int = 10,stability_voltage_difference:float = 0.004,voltage_sample_rate:int=1000,samples_per_read:int=100):
         """This is a class to control a single axis scanner. A scanner consists of an item where we expect the same amount of movement for a command so if we 
             apply one volt we can expect a certain amount of motion consistently. It uses at a minimum one output port to control the scanner but an input port can be configured 
     
@@ -93,12 +93,12 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
     
     def __repr__(self):
         response = f"""Conversion Factor Setting:{self.conversion_volts_per_meter_setting},
-                       Device Name Output: {self.device_name_output},
+                    Device Name Output: {self.device_name_output},
                             Channel Output: {self.channel_name_output},
-                       Device Name Input: {self.device_name_input},
+                    Device Name Input: {self.device_name_input},
                             Channel Input: {self.channel_name_input},
-                       Positional Limits: {self.position_limits_m},
-                       Conversion Voltage Getting: {self.conversion_volts_per_meter_getting}"""
+                    Positional Limits: {self.position_limits_m},
+                    Conversion Voltage Getting: {self.conversion_volts_per_meter_getting}"""
         return response
     
     #########################################################################################################################################################################    
@@ -162,7 +162,7 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
                 with nidaqmx.Task() as task:
                     task.ai_channels.add_ai_voltage_chan(channel_address_in, terminal_config=nidaqmx.constants.TerminalConfiguration.RSE)
                     task.timing.cfg_samp_clk_timing(rate=self.voltage_sample_rate,
-                                                     sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS, samps_per_chan=self.samples_per_read)
+                                                    sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS, samps_per_chan=self.samples_per_read)
 
                     task.start()
                     
@@ -182,6 +182,6 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
 
             except nidaqmx.DaqError as e:
                 raise Exception(f"DAQmx error occurred: {e}")
-               
+            
         except:
             raise Exception("Failed to stabilize voltage output")

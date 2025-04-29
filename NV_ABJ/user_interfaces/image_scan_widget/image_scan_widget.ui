@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ImageScanWidget</class>
- <widget class="QWidget" name="ImageScanWidget">
+ <class>image_scan_widget</class>
+ <widget class="QWidget" name="image_scan_widget">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>752</width>
-    <height>507</height>
+    <width>623</width>
+    <height>418</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -29,7 +29,7 @@
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">background-color: rgb(0, 0, 0);</string>
+    <string notr="true"/>
    </property>
    <property name="frameShape">
     <enum>QFrame::StyledPanel</enum>
@@ -286,7 +286,7 @@
      <string>Update Cursor</string>
     </property>
     <property name="checkable">
-     <bool>true</bool>
+     <bool>false</bool>
     </property>
     <property name="checked">
      <bool>false</bool>

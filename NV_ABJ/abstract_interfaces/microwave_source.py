@@ -1,15 +1,10 @@
-__all__ = ["MicrowaveSource","MicrowaveSourceConfiguration"]
+__all__ = ["MicrowaveSource"]
 
 from abc import ABCMeta, abstractmethod
 from NV_ABJ.abstract_interfaces.connected_device import ConnectedDevice
 import numpy.typing as npt
 import numpy as np
 from dataclasses import dataclass
-
-@dataclass
-class MicrowaveSourceConfiguration:
-    frequency_range_hz:tuple[float,float]
-    amplitude_range_dbm:tuple[float,float]
 
 class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
     """This is a class for a signal generator not limited to but used for control of the RF supplied to the NV and allows for a general 

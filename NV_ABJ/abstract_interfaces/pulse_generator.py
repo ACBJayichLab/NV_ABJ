@@ -1,7 +1,7 @@
 __all__ = ["PulseGenerator"]
 
 from abc import ABCMeta, abstractmethod
-from NV_ABJ import ConnectedDevice
+from NV_ABJ.abstract_interfaces.connected_device import ConnectedDevice
 
 class PulseGenerator(ConnectedDevice,metaclass=ABCMeta):
     @abstractmethod
