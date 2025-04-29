@@ -29,3 +29,8 @@ class MeasurementSequence(metaclass=ABCMeta):
         Returns:
             tuple[NDArray] :The int is the order in the sequence that was called
         """
+
+    @abstractmethod
+    def experimental_setup(self, *args, **kwargs):
+        """This is where we should have an input of required devices for this measurment
+        """
