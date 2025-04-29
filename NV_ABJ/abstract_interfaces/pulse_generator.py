@@ -11,7 +11,7 @@ class PulseGenerator(ConnectedDevice,metaclass=ABCMeta):
     class _StartAsyncWorker(threading.Thread):
         """Class used to by the asynchronous start to thread the function with a delay"""
         def __init__(self,delayed_s:float, start_function:callable, *args, **kwargs):
-            super.__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
             self.delayed_s = delayed_s
             self.start_function = start_function
 
