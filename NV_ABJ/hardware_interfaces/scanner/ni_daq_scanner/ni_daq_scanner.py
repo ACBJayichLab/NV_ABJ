@@ -12,6 +12,7 @@ import time # used for timing out the daq interactions
 
 # National instruments imports 
 import nidaqmx
+from nidaqmx.constants import TaskMode
 
 # Importing abstract class
 from NV_ABJ.abstract_interfaces.scanner import ScannerSingleAxis
@@ -57,7 +58,9 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
         self.samples_per_read = samples_per_read
 
         self._position_m:float = None # Where the device is set to for tracking purposes only
-
+        
+        self.input_task = None
+        self.output_task = None
 
     #########################################################################################################################################################################    
     # Implementation of the abstract single axis scanner class
@@ -85,10 +88,32 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
     
     # This is handled by the daq
     def make_connection(self):
-        pass
+
+        channel_address_out = self.device_name_output+"/"+self.channel_name_output
+        self.output_task = nidaqmx.Task()
+        self.output_task.ao_channels.add_ao_voltage_chan(channel_address_out)
+        self.output_task.control(TaskMode.TASK_COMMIT)
+
+
+        if self.channel_name_input != None:
+            channel_address_in = self.device_name_input+"/"+self.channel_name_input
+            self.input_task = nidaqmx.Task()
+
+            self.input_task.ai_channels.add_ai_voltage_chan(channel_address_in,
+                                                             terminal_config=nidaqmx.constants.TerminalConfiguration.RSE)
+            self.input_task.timing.cfg_samp_clk_timing(rate=self.voltage_sample_rate,
+                                                       sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS,
+                                                         samps_per_chan=self.samples_per_read)
+
+            self.input_task.control(TaskMode.TASK_COMMIT)
     
     def close_connection(self):
-        pass
+        if self.output_task != None:
+            self.output_task.close()
+
+        if self.input_task != None:
+            self.input_task.close()
+
     
     
     def __repr__(self):
@@ -123,34 +148,30 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
         return voltage_set
 
     def voltage_out(self,voltage):
-        channel_address_out = self.device_name_output+"/"+self.channel_name_output
         try:
-            with nidaqmx.Task() as task:
-                task.ao_channels.add_ao_voltage_chan(channel_address_out)
-                task.write(voltage)
-
+            self.output_task.write(voltage)    
         except nidaqmx.DaqError as e:
             raise Exception(f"DAQmx error occurred and could not set voltage: {e}")
-
-    
-    def read_voltage(self):
-        channel_address_in = self.device_name_input+"/"+self.channel_name_input
-
-        try:
-            with nidaqmx.Task() as task:
-                task.ai_channels.add_ai_voltage_chan(channel_address_in)
-                voltage = task.read()        
-
-        except nidaqmx.DaqError as e:
-            raise Exception(f"DAQmx error occurred: {e}")
         
+        except Exception as e:
+            raise Exception(f"Failed to output data. {e}")
+
+        
+    def read_voltage(self):
+
+        if self.input_task != None:
+            try:
+                voltage = self.input_task.read()        
+            except nidaqmx.DaqError as e:
+                raise Exception(f"DAQmx error occurred: {e}")
+            
+            except Exception as e:
+                raise Exception(f"Failed to read data. {e}")
         else:
             return voltage
 
     
     def wait_for_voltage(self,voltage):
-        channel_address_in = self.device_name_input+"/"+self.channel_name_input
-
         try:
             self.voltage_out(voltage)
             timeout_start = time.time()
@@ -158,27 +179,18 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
             # This doesn't actually use the getting value to determine distance it simply waits for the voltage to settle 
 
             try:
-
-                with nidaqmx.Task() as task:
-                    task.ai_channels.add_ai_voltage_chan(channel_address_in, terminal_config=nidaqmx.constants.TerminalConfiguration.RSE)
-                    task.timing.cfg_samp_clk_timing(rate=self.voltage_sample_rate,
-                                                    sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS, samps_per_chan=self.samples_per_read)
-
-                    task.start()
+                self.input_task.start()
+                # getting the data until its deviation is lower than desired or timed out
+                while time.time() < timeout_start + self.timeout_waiting_for_voltage_set_s:
+                    # acquiring data
+                    data = self.input_task.read(number_of_samples_per_channel=self.samples_per_read)
                     
-                    # getting the data until its deviation is lower than desired or timed out
-                    while time.time() < timeout_start + self.timeout_waiting_for_voltage_set_s:
-                        # aquiring data
-                        data = task.read(number_of_samples_per_channel=self.samples_per_read)
-                        
-                        # getting the deviation of the data
-                        deviation = np.std(data)
-                        if deviation <= self.stability_voltage_difference:
-                            #exiting while loop when the voltage deviation is lower or equal to the desired 
-                            return np.mean(data),deviation
-                    print("Voltage timed out. Could not reach requested voltage for the daq output")
-
-
+                    # getting the deviation of the data
+                    deviation = np.std(data)
+                    if deviation <= self.stability_voltage_difference:
+                        #exiting while loop when the voltage deviation is lower or equal to the desired 
+                        return np.mean(data),deviation
+                print("Voltage timed out. Could not reach requested voltage for the daq output")
 
             except nidaqmx.DaqError as e:
                 raise Exception(f"DAQmx error occurred: {e}")

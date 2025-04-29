@@ -62,7 +62,8 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
 
             self._load_ext_triggered = True
 
-        if self._load_self_triggered:
+        # Opens if not preloaded or if the dwell time changes 
+        if self._load_self_triggered or self._dwell_time_s != dwell_time_s:
             # Creating tasks to run
             self.read_task = nidaqmx.Task() 
             self.samp_clk_task =  nidaqmx.Task()
@@ -146,15 +147,12 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         return edge_counts
 
     
-    def get_counts_raw_when_triggered(self, dwell_time_s:float, number_of_data_taking_cycles:int)-> NDArray[np.int64]:
+    def get_counts_raw_when_triggered(self, number_of_data_taking_cycles:int)-> NDArray[np.int64]:
         """get_counts_raw nominally you can call it simply with 
         
-            raw_counts = photon_counter.get_counts_raw(dwell_time_s)
-
-            raw_counts = photon_counter.get_counts_raw(dwell_time_s,number_of_data_taking_cycles)
+            raw_counts = photon_counter.get_counts_raw(number_of_data_taking_cycles)
 
         Args:
-            dwell_time_s (float): This is the amount of time in seconds that we plan to collect photons 
             number_of_data_taking_cycles (int): This is the number of cycles when where samples will be taken and is how long the list will be 
 
         Raises:
@@ -168,6 +166,7 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
             if self.read_task != None:
                 self.read_task.close()
                 self.read_task = None
+                self._dwell_time_s = None
             
             if self.samp_clk_task != None:
                 self.samp_clk_task.close()
@@ -226,6 +225,7 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         self.samp_clk_task = None
         self.read_task = None
         self.ext_trig_read_task = None
+        self._dwell_time_s = None
 
 
     def close_connection(self):
