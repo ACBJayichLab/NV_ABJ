@@ -61,13 +61,14 @@ class SequenceSubset:
         self.loop_steps = loop_steps # when set to zero it wont be looped
         self.devices = set()
 
-    def add_step(self,devices:list=[],duration_ns:float=0):
+    def add_step(self,duration_ns:float=0,devices:list=[]):
         """Adds a step to the sub sequence 
 
         Args:
             devices (list, optional): List of devices to turn on. If none are given it is assumed no devices are on. Defaults to None.
             duration_ns (float, optional): How long the step will last. If none are given it will be removed when a sequence is generated. Defaults to None.
         """
+        print(duration_ns)
         if duration_ns > 0:
             device_set = set()
             for device in devices:
@@ -101,7 +102,7 @@ class Sequence:
         self.steps = []
         self.devices = set()
             
-    def add_step(self,devices:list=[],duration_ns:float=0):
+    def add_step(self,duration_ns:float=0,devices:list=[]):
         """Adds a singular step to the sequence by calling a sub sequence to make the step
 
         Args:
@@ -110,7 +111,7 @@ class Sequence:
         """
         sub_sequence = SequenceSubset()
         # Passing to the sub sequence because we want all steps generated the same
-        sub_sequence.add_step(devices,duration_ns)
+        sub_sequence.add_step(devices=devices,duration_ns=duration_ns)
         self.add_sub_sequence(sub_sequence=sub_sequence)
     
     def add_sub_sequence(self, sub_sequence:SequenceSubset):
@@ -423,16 +424,30 @@ if __name__ == "__main__":
                                             "device_label":"2",
                                             "delayed_to_on_ns":0}
                                     , device_status = False)
+    
+    sub1 = SequenceSubset()
+    sub1.add_step(100,[dev1])
+    sub1.add_step(200,[dev2])
+    sub1.add_step(300,[dev3])
+    sub1.loop_steps = 10
 
     seq = Sequence()
 
     # seq.add_step([dev2,dev3],3000)
-    seq.add_step([dev1],1000)
-    seq.add_step([dev2],1000)
-    seq.add_devices([dev1,dev2])
+    seq.add_step(1000,[dev1])
+    seq.add_step(2000,[dev2])
+    seq.add_sub_sequence(sub1)
+    seq.add_devices([dev1,dev2,dev3])
 
     print("\n Instruction Set")
-    print(seq.instructions(wrapped=False,allow_subroutine=False))
+    inst = seq.instructions(wrapped=True,allow_subroutine=True)
+
+    for ins in inst[0]:
+        print(inst[0][ins])
+
+    for sub_inst in inst[1]:
+        print(inst[1][sub_inst])
+
     # devices,times = seq.linear_time_sequence()
     # print(times)
     # for line in devices:
