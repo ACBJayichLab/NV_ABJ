@@ -68,7 +68,7 @@ class SequenceSubset:
             devices (list, optional): List of devices to turn on. If none are given it is assumed no devices are on. Defaults to None.
             duration_ns (float, optional): How long the step will last. If none are given it will be removed when a sequence is generated. Defaults to None.
         """
-        print(duration_ns)
+
         if duration_ns > 0:
             device_set = set()
             for device in devices:

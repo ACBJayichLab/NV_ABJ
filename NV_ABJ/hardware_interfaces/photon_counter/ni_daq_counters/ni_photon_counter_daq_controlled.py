@@ -64,6 +64,22 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
 
         # Opens if not preloaded or if the dwell time changes 
         if self._load_self_triggered or self._dwell_time_s != dwell_time_s:
+
+            #If the task is already open we want to close the previous one so we can update it
+            if self.samp_clk_task != None:
+                try:
+                    self.samp_clk_task.close()
+                except:
+                    pass
+                self.samp_clk_task = None
+
+            if self.read_task != None:
+                try:
+                    self.read_task.close()
+                except:
+                    pass
+                self.read_task = None
+
             # Creating tasks to run
             self.read_task = nidaqmx.Task() 
             self.samp_clk_task =  nidaqmx.Task()
@@ -125,6 +141,7 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
             self.read_task.control(TaskMode.TASK_COMMIT)
 
             self._load_self_triggered = False
+            self._dwell_time_s = dwell_time_s
  
 
 
@@ -256,3 +273,13 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
                        Port: {self.port},
                        Timeout Time (s):{self.timeout_waiting_for_data_s}"""
         return response
+    
+
+if __name__ == "__main__":
+    photon_counter_1 = NiPhotonCounterDaqControlled(device_name="PXI1Slot2",
+                                                        counter_pfi="pfi0",
+                                                        trigger_pfi="pfi13")
+    
+    with photon_counter_1 as pc:
+        for i in range(20,100):
+            print(pc.get_counts_per_second(i*1e-3))

@@ -231,31 +231,36 @@ class ConfocalControls:
 
 if __name__ == "__main__":
 
+    ###############################################################################################################
+    # FSM Controls 
+    ###############################################################################################################
     from NV_ABJ.hardware_interfaces.scanner.ni_daq_scanner.ni_daq_scanner import NiDaqSingleAxisScanner
     # Adding FSM controls
     confocal_x = NiDaqSingleAxisScanner(conversion_volts_per_meter_setting=10/(50e-6),
-                                                device_name_output="PXI1Slot5",
+                                                device_name_output="PXI1Slot2",
                                                 channel_name_output="ao0",
                                                 position_limits_m=(-50e-6,50e-6))
 
     confocal_y = NiDaqSingleAxisScanner(conversion_volts_per_meter_setting=10/(50e-6),
-                                                device_name_output="PXI1Slot5",
+                                                device_name_output="PXI1Slot2",
                                                 channel_name_output="ao1",
                                                 position_limits_m=(-50e-6,50e-6))
 
 
     confocal_z = NiDaqSingleAxisScanner(conversion_volts_per_meter_setting=10/(50e-6),
-                                                device_name_output="PXI1Slot4",
-                                                channel_name_output="ao3",
+                                                device_name_output="PXI1Slot2",
+                                                channel_name_output="ao2",
                                                 position_limits_m=(-50e-6,50e-6))
-    
+    ###############################################################################################################
+    # Photon Counter
+    ###############################################################################################################
     from NV_ABJ.hardware_interfaces.photon_counter.ni_daq_counters.ni_photon_counter_daq_controlled import NiPhotonCounterDaqControlled
 
     # Adding the photon counter
-    photon_counter_1 = NiPhotonCounterDaqControlled(device_name="PXI1Slot3",
+    photon_counter_1 = NiPhotonCounterDaqControlled(device_name="PXI1Slot2",
                                                     counter_pfi="pfi0",
-                                                    trigger_pfi="pfi2")
-
+                                                    trigger_pfi="pfi13")
+    
 
     # from NV_ABJ.experimental_logic.confocal_scanning import ConfocalControls
     # Setting up controls 
@@ -276,7 +281,7 @@ if __name__ == "__main__":
 
     with photon_counter_1:
         for i in range(dimension):
-            photon_counter_1.get_counts_per_second(dwell_time)
+            photon_counter_1.get_counts_raw(dwell_time)
     print((time.time()-start)-dimension*dwell_time)
 
     

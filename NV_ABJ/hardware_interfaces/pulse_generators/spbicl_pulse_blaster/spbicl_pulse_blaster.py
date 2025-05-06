@@ -1,7 +1,8 @@
 import subprocess
 from tempfile import TemporaryDirectory
 from os.path import join
-
+import multiprocessing
+import time
 # Importing abstract class and units 
 from NV_ABJ import PulseGenerator,seconds
 
@@ -27,6 +28,31 @@ class SpbiclPulseBlaster(PulseGenerator):
         self.controlled_devices = controlled_devices
         self._locked_commands = False
     
+    def _start_asynchronous_worker(self,delayed_s:float):
+        # Wait for a time
+        print("Waiting Time")
+        time.sleep(delayed_s)
+
+        # Call start function
+        self.start()
+        print("Starting Function")
+
+
+
+    def start_asynchronous(self, delayed_s:float)->None:
+        """ This function calls the start function after the specified amount of time
+        This is used so that the timing of the first pulse can start after the counters are loaded.
+        This allows for the timing of the devices to not be inhibited for determining when the first pulse 
+        was performed. N
+
+        Needed for non-uniform pulses a.k.a. pulses with multiple different readouts 
+        
+        Args:
+            delayed_s(float): How long the function will wait before starting the pulse blaster
+        """
+        start_async = multiprocessing.Process(target=self._start_asynchronous_worker, args=(delayed_s,))
+        start_async.start()
+
     def make_connection(self):
         # This is handled by spbicl.exe
         pass
@@ -327,7 +353,7 @@ class SpbiclPulseBlaster(PulseGenerator):
 if __name__ == "__main__":
     from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import SequenceDevice
     import time 
-
+    from experimental_configuration import *
     d1 = SequenceDevice(config={"address":0,
                                             "device_label":"AOM Trigger",
                                             "delayed_to_on_ns":0,
@@ -354,12 +380,21 @@ if __name__ == "__main__":
         
     spbicl_path=r"C:\SpinCore\SpinAPI\interpreter"
     pulse_blaster = SpbiclPulseBlaster(spbicl_path=r"C:\SpinCore\SpinAPI\interpreter",controlled_devices=[d1,d2,d3,d4])
-
+    
+    dwell_time_s = 30e-3
+    
     seq = Sequence()
-    seq.add_step([d1],10000)
+    seq.add_step(10000,[d1])
     seq_text = pulse_blaster.generate_sequence(sequence_class=seq)
     pulse_blaster.load(sequence=seq_text)
-    pulse_blaster.start()
+    # pulse_blaster.start()
+    print("Starting Async")
+    pulse_blaster.start_asynchronous(0.2)
+    t
+    print("loading function")
+    with photon_counter_1 as pc:
+        print(pc.get_counts_raw(dwell_time_s=dwell_time_s))
+    print("Finished Sequence")
     # pulse_blaster.update_devices([d4])
 
 

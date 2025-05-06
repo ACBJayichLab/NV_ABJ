@@ -227,21 +227,21 @@ class SG380(MicrowaveSource):
             15 Offset of rear DC OFSD
         """
         # Finding max list 
-        all_command_lists = [frequency_list_hz,
-                            phase_deg,
-                            amplitude_list_bnc_dbm,
-                            offset_for_bnc,
-                            amplitude_list_n_type_dbm,
-                            front_panel_display_list,
-                            enable_disable_list,
-                            modulation_type_list,
-                            modulation_function_list,
-                            modulation_rate_list,
-                            modulation_deviation_list,
-                            amplitude_of_clock_list,
-                            offset_of_clock_output,
-                            amplitude_of_hf_list,
-                            offset_from_rear_dc_list]
+        all_command_lists = [list(frequency_list_hz),
+                            list(phase_deg),
+                            list(amplitude_list_bnc_dbm),
+                            list(offset_for_bnc),
+                            list(amplitude_list_n_type_dbm),
+                            list(front_panel_display_list),
+                            list(enable_disable_list),
+                            list(modulation_type_list),
+                            list(modulation_function_list),
+                            list(modulation_rate_list),
+                            list(modulation_deviation_list),
+                            list(amplitude_of_clock_list),
+                            list(offset_of_clock_output),
+                            list(amplitude_of_hf_list),
+                            list(offset_from_rear_dc_list)]
         
         max_list_length = max([len(i) for i in all_command_lists])
 

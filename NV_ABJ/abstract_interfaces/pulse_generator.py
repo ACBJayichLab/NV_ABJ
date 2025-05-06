@@ -6,21 +6,18 @@ from NV_ABJ.abstract_interfaces.connected_device import ConnectedDevice
 # For asynchronous worker 
 import threading 
 import time
+import multiprocessing
+
 class PulseGenerator(ConnectedDevice,metaclass=ABCMeta):
 
-    class _StartAsyncWorker(threading.Thread):
-        """Class used to by the asynchronous start to thread the function with a delay"""
-        def __init__(self,delayed_s:float, start_function:callable, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.delayed_s = delayed_s
-            self.start_function = start_function
-
-        def run(self):
+    def _start_asynchronous_worker(self,delayed_s:float):
             # Wait for a time
+            print("Waiting Time")
             time.sleep(self.delayed_s)
-            # Call start function
-            self.start_function()
 
+            # Call start function
+            self.start()
+            print("Starting Function")
 
 
 
@@ -35,8 +32,8 @@ class PulseGenerator(ConnectedDevice,metaclass=ABCMeta):
         Args:
             delayed_s(float): How long the function will wait before starting the pulse blaster
         """
-        start_async = PulseGenerator._StartAsyncWorker(delayed_s=delayed_s,start_function=self.start)
-        start_async.run()
+        start_async = multiprocessing.Process(target=self._start_asynchronous_worker, args=(delayed_s,))
+        start_async.start()
 
 
 
