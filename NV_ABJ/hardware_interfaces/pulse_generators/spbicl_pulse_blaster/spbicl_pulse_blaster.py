@@ -209,7 +209,7 @@ class SpbiclPulseBlaster(PulseGenerator):
             raise Warning("To update devices you must stop the sequence")
 
     
-    def generate_sequence(self,sequence_class:Sequence)->str:
+    def generate_sequence(self,sequence_class:Sequence,wrapped=True,allow_subroutine=True)->str:
         """This function takes the sequence class and converts it into a format that can be interpreted by the pulse blaster 
 
         Args:
@@ -227,7 +227,7 @@ class SpbiclPulseBlaster(PulseGenerator):
             sequence_class.add_devices(self.controlled_devices)
 
         # Gets a linear time sequence from the sequence generation class
-        instructions, sub_routines = sequence_class.instructions(wrapped=True,allow_subroutine=True)
+        instructions, sub_routines = sequence_class.instructions(wrapped=wrapped,allow_subroutine=allow_subroutine)
 
         sequence_length = len(instructions)-1
 
@@ -390,7 +390,7 @@ if __name__ == "__main__":
     # pulse_blaster.start()
     print("Starting Async")
     pulse_blaster.start_asynchronous(0.2)
-    t
+    
     print("loading function")
     with photon_counter_1 as pc:
         print(pc.get_counts_raw(dwell_time_s=dwell_time_s))

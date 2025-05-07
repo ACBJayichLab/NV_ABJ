@@ -12,6 +12,7 @@ class SequenceDeviceConfiguration:
     device_label:str # The name that will be used for labeling and graphing
     delayed_to_on_ns:int = 0 # How many nano-seconds it takes to turn on must be greater than or equal to zero
     inverted_output:bool = False # If the output needs to be inverted to function. Inverted means when pulse blaster powers pin the device turns off
+    color:str = None
 
     def __lt__(self,other):
         return self.delayed_to_on_ns < other.delayed_to_on_ns
@@ -135,7 +136,6 @@ class Sequence:
         return f"\nSteps:\n{steps_text}\nDevice:{self.devices}"
     
 
-    
     def linear_time_sequence(self,wrapped:bool=True)-> tuple[dict,set]:
         """This function generates a linear time progression of the sequences and raises errors if a sequence is not possible due to timing of the 
         delays on a device interacting with times it was previously on. It also applies the delay for the devices 
@@ -161,32 +161,7 @@ class Sequence:
                 devices_with_delays.add(device)
 
 
-        # Finding any inverted output devices
-        inverted_devices = set()
-        inverted_devices_addresses = set()
-        for device in self.devices:
-            if device.inverted_output:
-                inverted_devices.add(device)
-                inverted_devices_addresses.add(device.address)
-
-        # Taking care of any inverted outputs 
-        if inverted_devices != set():
-            # Becuase we are inverting bits we want an independent copy of the steps to not affect the sequence 
-            temp_steps = copy.deepcopy(self.steps)
-
-            for ind,step in enumerate(temp_steps):
-                devices_on = step[1]
-                for device in inverted_devices:
-                    # Remove the address if it is in the instructions and add it if it is not in the instructions 
-                    if device in devices_on:
-                        devices_on.remove(device)
-                    else:
-                        devices_on.add(device)
-
-                temp_steps[ind] = (step[0],devices_on)
-        else:
-            temp_steps = self.steps
-
+        temp_steps = self.steps
 
         # Adding in the first step
         previous_duration = temp_steps[0][0]
@@ -194,11 +169,11 @@ class Sequence:
         devices_on_before_start = set()
         
         devices_previously_on_sorted = sorted(devices_previously_on)
-
         for ind,device in enumerate(devices_previously_on_sorted):
             for dev in devices_previously_on_sorted[ind:]:
                 sequence_devices[dev.address]['on_times_ns'].add(-device.delayed_to_on_ns)
-
+                sequence_devices[dev.address]['on_times_ns'].add(time_ns)
+            
             if device.delayed_to_on_ns > 0:
                 # Getting the devices that will need to be wrapped
                 devices_on_before_start.add(device)
@@ -207,7 +182,8 @@ class Sequence:
 
         time_ns = time_ns + previous_duration
         step_times_ns.add(time_ns)
-        
+
+
         # Adds the times the device is already on from the list 
         for ind,step in enumerate(temp_steps[1:]):
             duration = step[0] 
@@ -233,7 +209,7 @@ class Sequence:
 
                         # Checks if the delay time is overlapping with when it was previously on
                         if len(sequence_devices[device.address]["on_times_ns"]) > 0 and max(sequence_devices[device.address]["on_times_ns"]) > device_time:
-                            raise ValueError("The devices delayed on overlaps with when it was previously on the duration")
+                            raise ValueError(f"The devices delayed on overlaps with when it was previously on the duration.\nDevice:{sequence_devices[device.address]["device"]}\nStep:{step}\nIndex:{ind}")
 
                         sequence_devices[device.address]["on_times_ns"].add(device_time)
                         step_times_ns.add(device_time)
@@ -313,10 +289,23 @@ class Sequence:
             step_times_ns = temp
 
 
+        # Finding any inverted output devices
+        inverted_devices = set()
+        for device in self.devices:
+            if device.inverted_output:
+                inverted_devices.add(device)
+
+        # Taking care of any inverted outputs 
+        if inverted_devices != set():
+            # Because we are inverting bits we want an independent copy of the steps to not affect the sequence 
+
+            for device in inverted_devices:
+                # Inverting all the outputs
+                on_times_ns = step_times_ns-sequence_devices[device.address]['on_times_ns']
+                sequence_devices[device.address]['on_times_ns'] = on_times_ns
+
+
         return sequence_devices, sorted(step_times_ns)
-
-
-
     
     def instructions(self,allow_subroutine:bool = True,wrapped:bool=True):
         # We want to start with what the linear time has already given us time wise
@@ -409,46 +398,103 @@ class Sequence:
             self.devices.add(device.config)    
 
 if __name__ == "__main__":
-    dev1 = SequenceDevice(config={"address":0,
-                                            "device_label":"0",
-                                            "delayed_to_on_ns":0,
-                                              "inverted_output":False}
-                                    , device_status = False)
+        
+        from experimental_configuration import *
 
-    dev2 = SequenceDevice(config={"address":1,
-                                            "device_label":"1",
-                                            "delayed_to_on_ns":0}
-                                    , device_status = False)
+        import matplotlib.pyplot as plt 
+        import numpy as np
 
-    dev3 = SequenceDevice(config={"address":2,
-                                            "device_label":"2",
-                                            "delayed_to_on_ns":0}
-                                    , device_status = False)
-    
-    sub1 = SequenceSubset()
-    sub1.add_step(100,[dev1])
-    sub1.add_step(200,[dev2])
-    sub1.add_step(300,[dev3])
-    sub1.loop_steps = 10
+        def generate_sequence(depopulation_time_s:float,iq_time_s:float,pi_pulse_duration_s:float,wait_time_s:float,readout_trigger_duration_s:float,readout_time_s:float,green_pulse_duration_s:float,
+                          rf_iq_trigger:SequenceDevice,rf_trigger:SequenceDevice,laser_trigger:SequenceDevice,readout_trigger:SequenceDevice) -> Sequence:
+        
+            """This is a pulsed esr sequence utilizing a signal and a reference later that should be normalized to each other"""
+            seq = Sequence()
 
-    seq = Sequence()
+            # signal
+            seq.add_step(green_pulse_duration_s*1e9                       ,[laser_trigger])
+            seq.add_step((depopulation_time_s-iq_time_s)*1e9              ,[])
+            seq.add_step(iq_time_s*1e9                                    ,[rf_iq_trigger])
+            seq.add_step(pi_pulse_duration_s*1e9                          ,[rf_iq_trigger,rf_trigger])
+            seq.add_step(iq_time_s*1e9                                    ,[rf_iq_trigger])
+            seq.add_step((wait_time_s-iq_time_s)*1e9                      ,[])
+            seq.add_step(readout_trigger_duration_s*1e9                   ,[laser_trigger,readout_trigger])
+            seq.add_step((readout_time_s-readout_trigger_duration_s)*1e9  ,[laser_trigger])
+            seq.add_step((readout_trigger_duration_s)*1e9                 ,[laser_trigger,readout_trigger])
 
-    # seq.add_step([dev2,dev3],3000)
-    seq.add_step(1000,[dev1])
-    seq.add_step(2000,[dev2])
-    seq.add_sub_sequence(sub1)
-    seq.add_devices([dev1,dev2,dev3])
 
-    print("\n Instruction Set")
-    inst = seq.instructions(wrapped=True,allow_subroutine=True)
+            # reference
+            seq.add_step(green_pulse_duration_s*1e9                        ,[laser_trigger])
+            seq.add_step(depopulation_time_s*1e9                           ,[])
+            seq.add_step(wait_time_s*1e9                                   ,[])
+            seq.add_step(readout_trigger_duration_s*1e9                    ,[laser_trigger,readout_trigger])
+            seq.add_step((readout_time_s-readout_trigger_duration_s)*1e9   ,[laser_trigger])
+            seq.add_step(readout_trigger_duration_s*1e9                    ,[laser_trigger,readout_trigger])
 
-    for ins in inst[0]:
-        print(inst[0][ins])
+            return seq
+        
+        green_aom_trigger = SequenceDevice(config=SequenceDeviceConfiguration(address=0,delayed_to_on_ns=0,inverted_output=False,device_label="Green AOM").__dict__)
+        
+        
+        seq = generate_sequence(depopulation_time_s=200e-9,
+                                            iq_time_s=40e-9,
+                                            pi_pulse_duration_s=75e-9,
+                                            wait_time_s=2000e-9,
+                                            readout_trigger_duration_s=50e-9,
+                                            readout_time_s=400e-9,
+                                            green_pulse_duration_s=2000e-9,
+                                            # Device Trigger
+                                            rf_iq_trigger=rf_1_iq_pos_x_trigger,
+                                            rf_trigger=rf_1_trigger,
+                                            laser_trigger=green_aom_trigger,
+                                            readout_trigger=apd_1_trigger)
+            
+        inst = seq.instructions()[0]
 
-    for sub_inst in inst[1]:
-        print(inst[1][sub_inst])
 
-    # devices,times = seq.linear_time_sequence()
-    # print(times)
-    # for line in devices:
-    #     print(devices[line]["on_times_ns"])
+        fig, ax = plt.subplots()
+        time_ns = 0
+        offset_amount = 1
+        offset_device = {}
+
+        color_options = ['#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
+
+        devices = {}
+        for dev in seq.devices:
+            devices[dev.address] = dev
+
+        for inst_ind in inst:
+            line = inst[inst_ind][1]
+            duration = line[0]
+            for device_address in line[1]:
+                
+
+                if device_address not in offset_device.keys():
+                    offset_device[device_address] = {"blocks_x":[],"blocks_y":[]}
+
+                offset_device[device_address]["blocks_x"].append([time_ns,time_ns,time_ns+duration,time_ns+duration])
+                offset_device[device_address]["blocks_y"].append(np.array([0,1,1,0]))
+
+            time_ns = time_ns + duration
+
+        y_ticks = []
+        y_tick_names = []
+
+
+
+        for ind,device_address in enumerate(sorted(offset_device.keys())):
+            color = color_options[device_address]
+            offset = ind
+            y_ticks.append(ind+.5)
+            y_tick_names.append(devices[device_address].device_label)
+
+            for block_x, block_y in zip(offset_device[device_address]["blocks_x"],offset_device[device_address]["blocks_y"]):
+                plt.fill(block_x,block_y+offset, color=color)
+        ax.set_yticks(y_ticks)
+        ax.set_yticklabels(y_tick_names)
+        ax.set_xlabel("Time")
+        ax.set_xticklabels([])
+        ax.set_xticks([])
+        plt.show()
+        # inst = seq.steps
+        # for line in inst:
+        #     print(line) 
