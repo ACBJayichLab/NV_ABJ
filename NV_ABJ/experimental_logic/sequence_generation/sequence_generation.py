@@ -9,44 +9,26 @@ class SequenceDeviceConfiguration:
     These are things that should not change for the device during the course of the experiment 
     """
     address:int # What the device that is feed into the sequence class will use to identify the device 
-    device_label:str # The name that will be used for labeling and graphing
     delayed_to_on_ns:int = 0 # How many nano-seconds it takes to turn on must be greater than or equal to zero
     inverted_output:bool = False # If the output needs to be inverted to function. Inverted means when pulse blaster powers pin the device turns off
-    color:str = None
 
     def __lt__(self,other):
         return self.delayed_to_on_ns < other.delayed_to_on_ns
 
-@dataclass
 class SequenceDevice:
-    """This is the class that determines the basic properties of a devices passed to a sequence 
+    def __init__(self,address:int,delayed_to_on_ns:int=0,inverted_output:bool=False,
+                 device_status:bool = False, device_label:str = None, graph_order = None, graph_color = None):
 
-    A device without a specification on a delay time
-        dev0 = SequenceDevice(config={"address":0,"device_label":"0"})
-
-    A device with a specification on delay time 
-        dev0 = SequenceDevice(config={"address":0,"device_label":"0","delayed_to_on_ns":0})
-
-    by default devices are set to off to change this on creation 
-        dev0 = SequenceDevice(config={"address":0,"device_label":"0"},device_status = True)
-
-    After creating the class you can change it by using 
-        dev0.device_status = True (or False)
-
-
-    Args:
-        config={"address":0,"device_label":"0","delayed_to_on_ns":0}
-            address(any): This is an identifier that the pulse generator will use. It could just be an integer 
-            device_label(str): This is the general name the device will have e.g. "Green AOM" this name is used for graphs and labels 
-            delayed_to_on_ns(float): This is how long of a delay from signalling the device to be on to the device actually turning on will be in seconds. Defaults to 0
+        if delayed_to_on_ns >= 0 and type(address) == int and type(inverted_output) == bool:
+            self.config:SequenceDeviceConfiguration = SequenceDeviceConfiguration(address=address,delayed_to_on_ns=delayed_to_on_ns,inverted_output=inverted_output)
+        else:
+            raise ValueError("The assignment of the address, delayed on, or inverted output was not correct")
         
-        device_status(bool): This indicates if the device should be turned on when updated True(on) or False(off). Defaults to False (off)
-    """
-    config:SequenceDeviceConfiguration
-    device_status:bool = False # False indicates an off device when updating the devices True will be on
-
-    def __post_init__(self):
-        self.config = SequenceDeviceConfiguration(**self.config)
+        self.device_status:bool = device_status # False indicates an off device when updating the devices True will be on
+        self.device_label:str = device_label # The name that will be used for labeling and graphing
+        
+        self.graph_color:str = graph_color # color that it will be graphed as
+        self.graph_order:int = graph_order # The order which items will be graphed, higher numbers are higher up on the y axis 
 
 class SequenceSubset:
     
@@ -121,13 +103,26 @@ class Sequence:
         Args:
             sub_sequence (SequenceSubset): The subsequence you have created
         """
-        # Loops through the sub sequence for the amount of times it was specified 
-        looping_times = sub_sequence.loop_steps+1
-        for i in range(looping_times):
+        # This prevents issues that can arise from feeding the sequence itself 
+        sub_sequence = copy.deepcopy(sub_sequence)
+
+        if type(sub_sequence) == SequenceSubset:
+            # Loops through the sub sequence for the amount of times it was specified 
+            looping_times = sub_sequence.loop_steps+1
+            for i in range(looping_times):
+                for step in sub_sequence.steps:
+                    self.steps.append(step)
+            
+            self.devices.update(sub_sequence.devices)
+        
+        elif type(sub_sequence) == Sequence:
             for step in sub_sequence.steps:
                 self.steps.append(step)
+            self.devices.update(sub_sequence.devices)
         
-        self.devices.update(sub_sequence.devices)
+        else:
+            raise ValueError(f"You must input a Sequence class or a SequenceSubset class to add you entered a:{type(sub_sequence)}")
+        
 
     def __repr__(self):
         steps_text = ""
@@ -399,7 +394,7 @@ class Sequence:
 
 if __name__ == "__main__":
         
-        from experimental_configuration import *
+        # from experimental_configuration import *
 
         import matplotlib.pyplot as plt 
         import numpy as np
@@ -431,10 +426,12 @@ if __name__ == "__main__":
             seq.add_step(readout_trigger_duration_s*1e9                    ,[laser_trigger,readout_trigger])
 
             return seq
-        
-        green_aom_trigger = SequenceDevice(config=SequenceDeviceConfiguration(address=0,delayed_to_on_ns=0,inverted_output=False,device_label="Green AOM").__dict__)
-        
-        
+                
+        rf_1_iq_pos_x_trigger = SequenceDevice(address=2,delayed_to_on_ns=0,inverted_output=False,device_label="RF1 IQ+X")
+        rf_1_trigger = SequenceDevice(address=3,delayed_to_on_ns=0,inverted_output=False,device_label="RF1")
+        green_aom_trigger = SequenceDevice(address=0,delayed_to_on_ns=0,inverted_output=False,device_label="Green AOM")
+        apd_1_trigger = SequenceDevice(address=1,delayed_to_on_ns=0,inverted_output=False,device_label="APD Trigger")
+
         seq = generate_sequence(depopulation_time_s=200e-9,
                                             iq_time_s=40e-9,
                                             pi_pulse_duration_s=75e-9,
@@ -447,7 +444,8 @@ if __name__ == "__main__":
                                             rf_trigger=rf_1_trigger,
                                             laser_trigger=green_aom_trigger,
                                             readout_trigger=apd_1_trigger)
-            
+        
+        seq.add_sub_sequence(seq)
         inst = seq.instructions()[0]
 
 
@@ -485,7 +483,7 @@ if __name__ == "__main__":
             color = color_options[device_address]
             offset = ind
             y_ticks.append(ind+.5)
-            y_tick_names.append(devices[device_address].device_label)
+            # y_tick_names.append(devices[device_address].device_label)
 
             for block_x, block_y in zip(offset_device[device_address]["blocks_x"],offset_device[device_address]["blocks_y"]):
                 plt.fill(block_x,block_y+offset, color=color)
