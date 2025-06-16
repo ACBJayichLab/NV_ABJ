@@ -53,3 +53,5 @@ class RabiIq(MeasurementSequence):
     def counts_to_counts_per_second(self, data:tuple, dwell_time_s:float)->npt.NDArray:
         signal, reference = self.counts(data)
         return signal/dwell_time_s, reference/dwell_time_s
+    
+    def save_data(self,signal:npt.NDArray, reference:npt.NDArray,normalized:npt.NDArray):

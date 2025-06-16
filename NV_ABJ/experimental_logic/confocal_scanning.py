@@ -166,7 +166,7 @@ class ConfocalControls:
         
         return photon_counts,np.array(z_positions)
     
-    def tracking(self,x_position_m:float,y_position_m:float,z_position_m:float, go_to_tracked:bool=True)->tuple[float,float,float,tuple[NDArray,NDArray,NDArray,NDArray,NDArray]]:
+    def tracking(self,x_position_m:float,y_position_m:float,z_position_m:float, go_to_tracked:bool=True, iterations:int = 2)->tuple[float,float,float,tuple[NDArray,NDArray,NDArray,NDArray,NDArray]]:
         """This is a tracking module that does a very simple 2D scan selecting the brightest point and proceeds to do a z scan over that point 
 
         Args:
@@ -188,30 +188,50 @@ class ConfocalControls:
         dwell_time_s = self.tracking_dwell_time_s
         xy_number_of_points = self.tracking_xy_number_of_points
         z_number_of_points = self.tracking_z_number_of_points
-
-        x_positions = np.linspace(x_position_m-xy_span/2,x_position_m+xy_span/2,xy_number_of_points)
-        y_positions = np.linspace(y_position_m-xy_span/2,y_position_m+xy_span/2,xy_number_of_points)
-        z_positions = np.linspace(z_position_m-z_span/2,z_position_m+z_span/2,z_number_of_points)
-
-
-        xy_2d_scan, _ , _ = self.xy_scan(dwell_time_s,x_positions,y_positions,z_position_m)
-
-        flat_index = np.argmax(xy_2d_scan)
-
-        row_index, col_index = np.unravel_index(flat_index, xy_2d_scan.shape)
-
-        x_pos = x_positions[col_index]
-        y_pos = y_positions[xy_number_of_points - row_index - 1]
-
-        # going to x and y position 
-        self.set_position_m(x_position=x_pos,
-                                y_position=y_pos,
-                                z_position=z_position_m)
+        
+        x_pos = x_position_m
+        y_pos = y_position_m
+        z_pos = z_position_m
 
 
-        z_1d_scan, _ = self.z_scan(dwell_time_s,x_pos,y_pos,z_positions)
+        for _ in range(iterations):
 
-        z_pos = z_positions[np.argmax(z_1d_scan)]
+            x_positions = np.linspace(x_pos-xy_span/2,x_pos+xy_span/2,xy_number_of_points)
+            y_positions = np.linspace(y_pos-xy_span/2,y_pos+xy_span/2,xy_number_of_points)
+            z_positions = np.linspace(z_pos-z_span/2,z_pos+z_span/2,z_number_of_points)
+
+
+
+            xy_2d_scan, _ , _ = self.xy_scan(dwell_time_s,x_positions,y_positions,z_pos)
+
+            # print(xy_2d_scan,np.sum(xy_2d_scan, axis=0), x_positions,np.sum(xy_2d_scan, axis=0)*x_positions)
+            x_pos = np.sum(np.sum(xy_2d_scan, axis=0)*x_positions)/np.sum(xy_2d_scan)
+            y_pos = np.sum(np.sum(xy_2d_scan, axis=1)*np.flip(y_positions))/np.sum(xy_2d_scan)
+
+            print(x_pos,y_pos)
+
+
+            # flat_index = np.argmax(xy_2d_scan)
+            
+
+            # row_index, col_index = np.unravel_index(flat_index, xy_2d_scan.shape)
+
+            # x_pos = x_positions[col_index]
+            # y_pos = y_positions[xy_number_of_points - row_index - 1]
+
+            # going to x and y position 
+            self.set_position_m(x_position=x_pos,
+                                    y_position=y_pos,
+                                    z_position=z_position_m)
+
+
+            z_1d_scan, _ = self.z_scan(dwell_time_s,x_pos,y_pos,z_positions)
+
+            # z_pos = z_positions[np.argmax(z_1d_scan)]
+            z_pos = np.sum(z_1d_scan*z_positions)/np.sum(z_1d_scan)
+
+
+
 
         if go_to_tracked:
             # Going to tracked position 
@@ -231,24 +251,30 @@ class ConfocalControls:
 
 if __name__ == "__main__":
 
+    x_pos = 43.188e-6
+    y_pos =  -46.236e-6
+    z_pos =-2.260e-6
+
+
+
     ###############################################################################################################
     # FSM Controls 
     ###############################################################################################################
     from NV_ABJ.hardware_interfaces.scanner.ni_daq_scanner.ni_daq_scanner import NiDaqSingleAxisScanner
     # Adding FSM controls
     confocal_x = NiDaqSingleAxisScanner(conversion_volts_per_meter_setting=10/(50e-6),
-                                                device_name_output="PXI1Slot2",
+                                                device_name_output="PXI1Slot5",
                                                 channel_name_output="ao0",
                                                 position_limits_m=(-50e-6,50e-6))
 
     confocal_y = NiDaqSingleAxisScanner(conversion_volts_per_meter_setting=10/(50e-6),
-                                                device_name_output="PXI1Slot2",
+                                                device_name_output="PXI1Slot5",
                                                 channel_name_output="ao1",
                                                 position_limits_m=(-50e-6,50e-6))
 
 
     confocal_z = NiDaqSingleAxisScanner(conversion_volts_per_meter_setting=10/(50e-6),
-                                                device_name_output="PXI1Slot2",
+                                                device_name_output="PXI1Slot4",
                                                 channel_name_output="ao2",
                                                 position_limits_m=(-50e-6,50e-6))
     ###############################################################################################################
@@ -257,31 +283,41 @@ if __name__ == "__main__":
     from NV_ABJ.hardware_interfaces.photon_counter.ni_daq_counters.ni_photon_counter_daq_controlled import NiPhotonCounterDaqControlled
 
     # Adding the photon counter
-    photon_counter_1 = NiPhotonCounterDaqControlled(device_name="PXI1Slot2",
+    photon_counter_1 = NiPhotonCounterDaqControlled(device_name="PXI1Slot3",
                                                     counter_pfi="pfi0",
-                                                    trigger_pfi="pfi13")
+                                                    trigger_pfi="pfi1")
     
 
     # from NV_ABJ.experimental_logic.confocal_scanning import ConfocalControls
     # Setting up controls 
+
     confocal_controls = ConfocalControls(confocal_x,confocal_y,confocal_z,photon_counter_1)
 
-    x_positions = np.linspace(-50e-6,50e-6,5)
-    y_positions = np.linspace(-50e-6,50e-6,5)
-
     confocal_controls.set_position_m(0,0,0)
+    confocal_controls.tracking_xy_number_of_points = 3
 
-    # start_time = time.time()
-    # confocal_controls.xy_scan(5e-3,x_positions=x_positions,y_positions=y_positions,z_position=-10e-6)
-    # print(time.time()-start_time)
+    # confocal_controls.tracking_xy_span = .5e-6
 
-    dwell_time = 5e-3
-    dimension = 80*80
-    start = time.time()
+    x,y,z,_ = confocal_controls.tracking(x_pos,y_pos,z_pos,iterations=10)
+    print(x,y,z)
 
-    with photon_counter_1:
-        for i in range(dimension):
-            photon_counter_1.get_counts_raw(dwell_time)
-    print((time.time()-start)-dimension*dwell_time)
+
+    # x_positions = np.linspace(-50e-6,50e-6,5)
+    # y_positions = np.linspace(-50e-6,50e-6,5)
+
+    # confocal_controls.set_position_m(0,0,0)
+
+    # # start_time = time.time()
+    # # confocal_controls.xy_scan(5e-3,x_positions=x_positions,y_positions=y_positions,z_position=-10e-6)
+    # # print(time.time()-start_time)
+
+    # dwell_time = 5e-3
+    # dimension = 80*80
+    # start = time.time()
+
+    # with photon_counter_1:
+    #     for i in range(dimension):
+    #         photon_counter_1.get_counts_raw(dwell_time)
+    # print((time.time()-start)-dimension*dwell_time)
 
     

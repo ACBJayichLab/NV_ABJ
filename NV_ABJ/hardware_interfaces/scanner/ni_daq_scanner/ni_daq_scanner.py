@@ -161,7 +161,8 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
 
         if self.input_task != None:
             try:
-                voltage = self.input_task.read()        
+                voltage = self.input_task.read()  
+                return voltage      
             except nidaqmx.DaqError as e:
                 raise Exception(f"DAQmx error occurred: {e}")
             
@@ -175,11 +176,8 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
         try:
             self.voltage_out(voltage)
             timeout_start = time.time()
-
             # This doesn't actually use the getting value to determine distance it simply waits for the voltage to settle 
-
             try:
-                self.input_task.start()
                 # getting the data until its deviation is lower than desired or timed out
                 while time.time() < timeout_start + self.timeout_waiting_for_voltage_set_s:
                     # acquiring data
@@ -187,9 +185,10 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
                     
                     # getting the deviation of the data
                     deviation = np.std(data)
-                    if deviation <= self.stability_voltage_difference:
+                    if deviation <= self.stability_voltage_difference and (np.mean(data)-voltage) <= deviation:
                         #exiting while loop when the voltage deviation is lower or equal to the desired 
                         return np.mean(data),deviation
+                    
                 print("Voltage timed out. Could not reach requested voltage for the daq output")
 
             except nidaqmx.DaqError as e:
@@ -197,3 +196,27 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
             
         except:
             raise Exception("Failed to stabilize voltage output")
+        
+
+if __name__ == "__main__":
+    scanner_conversion_factor = 150/(3.5e-6)
+
+    scanner_x = NiDaqSingleAxisScanner(conversion_volts_per_meter_getting=scanner_conversion_factor,
+                                    device_name_output= "PXI1Slot4",
+                                    channel_name_output= "ao0",
+                                    device_name_input= "PXI1Slot4",
+                                    channel_name_input= "ai0",
+                                    position_limits_m= (0,3.5e-6),
+                                    conversion_volts_per_meter_setting=scanner_conversion_factor
+                                    )
+    
+    with scanner_x:
+        print(scanner_x.read_voltage())
+        scanner_x.voltage_out(1)
+        time.sleep(1)
+        print(scanner_x.read_voltage())
+        scanner_x.voltage_out(0)
+
+        print(scanner_x.wait_for_voltage(1))
+        time.sleep(1)
+        print(scanner_x.wait_for_voltage(0))
