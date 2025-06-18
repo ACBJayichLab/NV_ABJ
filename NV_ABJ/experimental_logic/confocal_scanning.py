@@ -208,7 +208,6 @@ class ConfocalControls:
             x_pos = np.sum(np.sum(xy_2d_scan, axis=0)*x_positions)/np.sum(xy_2d_scan)
             y_pos = np.sum(np.sum(xy_2d_scan, axis=1)*np.flip(y_positions))/np.sum(xy_2d_scan)
 
-            print(x_pos,y_pos)
 
 
             # flat_index = np.argmax(xy_2d_scan)
