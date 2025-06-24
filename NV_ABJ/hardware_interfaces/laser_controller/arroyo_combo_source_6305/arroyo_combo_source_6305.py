@@ -12,8 +12,19 @@ try:
                                 write_timeout = 0)
     ser.write(b'*IDN? \r\n')
     time.sleep(0.1)
-    # Shows the model of Arroyo Instrument
     print(bytes.decode(ser.read(256)))
+
+    ser.write(b'LASer:LDI? \r\n')
+    time.sleep(0.1)
+    print(bytes.decode(ser.read(256)))
+
+    ser.write(b'LASer:LDI 500 \r\n')
+    time.sleep(0.1)
+
+    ser.write(b'LASer:LDI? \r\n')
+    time.sleep(0.1)
+    print(bytes.decode(ser.read(256)))
+    # Shows the model of Arroyo Instrument
 except:
     pass
 finally:
