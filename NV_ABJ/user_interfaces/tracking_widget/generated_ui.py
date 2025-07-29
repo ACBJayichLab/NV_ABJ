@@ -72,6 +72,7 @@ class Ui_TrackingWidget(object):
         self.dwell_time_ms_spin_box_tracking.setGeometry(QtCore.QRect(130, 140, 81, 22))
         self.dwell_time_ms_spin_box_tracking.setDecimals(3)
         self.dwell_time_ms_spin_box_tracking.setMinimum(1.0)
+        self.dwell_time_ms_spin_box_tracking.setStepType(QtWidgets.QAbstractSpinBox.DefaultStepType)
         self.dwell_time_ms_spin_box_tracking.setObjectName("dwell_time_ms_spin_box_tracking")
         self.z_span_spin_box_tracking = QtWidgets.QDoubleSpinBox(self.tracking_settings)
         self.z_span_spin_box_tracking.setGeometry(QtCore.QRect(130, 50, 81, 22))
@@ -83,10 +84,18 @@ class Ui_TrackingWidget(object):
         self.xy_span_spin_box_tracking.setDecimals(3)
         self.xy_span_spin_box_tracking.setMinimum(0.01)
         self.xy_span_spin_box_tracking.setObjectName("xy_span_spin_box_tracking")
+        self.label_6 = QtWidgets.QLabel(self.tracking_settings)
+        self.label_6.setGeometry(QtCore.QRect(50, 170, 71, 16))
+        self.label_6.setObjectName("label_6")
+        self.tracking_iterations_spin_box = QtWidgets.QSpinBox(self.tracking_settings)
+        self.tracking_iterations_spin_box.setGeometry(QtCore.QRect(130, 170, 81, 22))
+        self.tracking_iterations_spin_box.setMinimum(1)
+        self.tracking_iterations_spin_box.setStepType(QtWidgets.QAbstractSpinBox.DefaultStepType)
+        self.tracking_iterations_spin_box.setObjectName("tracking_iterations_spin_box")
         self.tracking_tabs.addTab(self.tracking_settings, "")
 
         self.retranslateUi(TrackingWidget)
-        self.tracking_tabs.setCurrentIndex(0)
+        self.tracking_tabs.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(TrackingWidget)
 
     def retranslateUi(self, TrackingWidget):
@@ -100,14 +109,5 @@ class Ui_TrackingWidget(object):
         self.label_3.setText(_translate("TrackingWidget", "Dwell Time(ms)"))
         self.label_4.setText(_translate("TrackingWidget", "XY Number of Points"))
         self.label_5.setText(_translate("TrackingWidget", "Z Number of Points "))
+        self.label_6.setText(_translate("TrackingWidget", "Iterations"))
         self.tracking_tabs.setTabText(self.tracking_tabs.indexOf(self.tracking_settings), _translate("TrackingWidget", "Tracking Settings "))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    TrackingWidget = QtWidgets.QWidget()
-    ui = Ui_TrackingWidget()
-    ui.setupUi(TrackingWidget)
-    TrackingWidget.show()
-    sys.exit(app.exec_())

@@ -10,7 +10,7 @@ import time
 
 class ConfocalControls:
     def __init__(self,scanner_x:ScannerSingleAxis,scanner_y:ScannerSingleAxis,scanner_z:ScannerSingleAxis,photon_counter:PhotonCounter,
-                tracking_xy_span:float = 1.5e-6,tracking_z_span:float = 3e-6,tracking_dwell_time_s:float = 5e-3,tracking_xy_number_of_points:int = 10,tracking_z_number_of_points:int = 20):
+                tracking_xy_span:float = 1.5e-6,tracking_z_span:float = 3e-6,tracking_dwell_time_s:float = 30e-3,tracking_xy_number_of_points:int = 10,tracking_z_number_of_points:int = 20,tracking_iterations:int=2):
         self.scanner_x = scanner_x
         self.scanner_y = scanner_y
         self.scanner_z = scanner_z
@@ -22,6 +22,7 @@ class ConfocalControls:
         self.tracking_dwell_time_s = tracking_dwell_time_s
         self.tracking_xy_number_of_points = tracking_xy_number_of_points
         self.tracking_z_number_of_points = tracking_z_number_of_points
+        self.tracking_iterations = tracking_iterations
 
     def set_position_m(self,x_position:float,y_position:float,z_position:float)->None:
         """Sets the position of the confocal based on the inputs
@@ -192,6 +193,8 @@ class ConfocalControls:
         x_pos = x_position_m
         y_pos = y_position_m
         z_pos = z_position_m
+
+        iterations = self.tracking_iterations
 
 
         for _ in range(iterations):

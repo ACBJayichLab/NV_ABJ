@@ -168,3 +168,7 @@ class CacliJpeCadm2(PositionerSingleAxis):
     def __repr__(self):
         return f"Target Id: {self.piezo_driver_target}\nAddress: {self.piezo_address}\nStage: {self.piezo_stage}"
 
+
+
+if __name__ == "__main__":
+    pass

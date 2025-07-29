@@ -33,7 +33,7 @@ class NiDaqPhotoDiode(PhotoDiode):
 
         try:
             with nidaqmx.Task() as task:
-                task.ai_channels.add_ai_voltage_chan(photo_diode_channel)
+                task.ai_channels.add_ai_voltage_chan(photo_diode_channel, max_val=10, min_val=-10)
                 voltage = task.read()        
 
         except nidaqmx.DaqError as e:

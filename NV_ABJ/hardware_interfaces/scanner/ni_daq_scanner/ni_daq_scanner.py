@@ -100,7 +100,8 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
             self.input_task = nidaqmx.Task()
 
             self.input_task.ai_channels.add_ai_voltage_chan(channel_address_in,
-                                                             terminal_config=nidaqmx.constants.TerminalConfiguration.RSE)
+                                                             terminal_config=nidaqmx.constants.TerminalConfiguration.RSE, 
+                                                             max_val=10, min_val=-10)
             self.input_task.timing.cfg_samp_clk_timing(rate=self.voltage_sample_rate,
                                                        sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS,
                                                          samps_per_chan=self.samples_per_read)
@@ -212,11 +213,11 @@ if __name__ == "__main__":
     
     with scanner_x:
         print(scanner_x.read_voltage())
-        scanner_x.voltage_out(1)
-        time.sleep(1)
-        print(scanner_x.read_voltage())
-        scanner_x.voltage_out(0)
+        # scanner_x.voltage_out(1)
+        # time.sleep(1)
+        # print(scanner_x.read_voltage())
+        # scanner_x.voltage_out(0)
 
-        print(scanner_x.wait_for_voltage(1))
-        time.sleep(1)
-        print(scanner_x.wait_for_voltage(0))
+        # print(scanner_x.wait_for_voltage(1))
+        # time.sleep(1)
+        # print(scanner_x.wait_for_voltage(0))

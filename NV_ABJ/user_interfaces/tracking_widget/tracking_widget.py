@@ -100,6 +100,7 @@ class TrackingWidget(Ui_TrackingWidget):
         self.xy_span_spin_box_tracking.setValue(self.confocal_controls.tracking_xy_span*1e6)
         self.z_points_spin_box_tracking.setValue(self.confocal_controls.tracking_z_number_of_points)
         self.xy_points_spin_box_tracking.setValue(self.confocal_controls.tracking_xy_number_of_points)
+        self.tracking_iterations_spin_box.setValue(self.confocal_controls.tracking_iterations)
 
         self.insert_ax()
        
@@ -244,6 +245,7 @@ class TrackingWidget(Ui_TrackingWidget):
         self.confocal_controls.tracking_z_number_of_points = self.z_points_spin_box_tracking.value()
         self.confocal_controls.tracking_xy_span = self.xy_span_spin_box_tracking.value()*1e-6
         self.confocal_controls.tracking_z_span = self.z_span_spin_box_tracking.value()*1e-6
+        self.confocal_controls.tracking_iterations = self.tracking_iterations_spin_box.value()
 
         # Starting asynchronous thread
         self.thread = QThread()

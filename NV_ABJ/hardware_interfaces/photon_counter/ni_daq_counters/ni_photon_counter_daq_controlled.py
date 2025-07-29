@@ -161,8 +161,7 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         self.samp_clk_task.stop()
 
         # Returning the final number of counts 
-        return edge_counts
-
+        return edge_counts       
     
     def get_counts_raw_when_triggered(self, number_of_data_taking_cycles:int, continuous_line:bool = False, double_samples = True)-> NDArray[np.int64]:
         """get_counts_raw nominally you can call it simply with 

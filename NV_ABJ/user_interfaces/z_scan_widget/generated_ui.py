@@ -29,7 +29,7 @@ class Ui_z_scan_widget(object):
         self.z_scan_dwell_time_image_scan_spin_box.setMinimum(0.0002)
         self.z_scan_dwell_time_image_scan_spin_box.setMaximum(10000.0)
         self.z_scan_dwell_time_image_scan_spin_box.setSingleStep(1.0)
-        self.z_scan_dwell_time_image_scan_spin_box.setProperty("value", 5.0)
+        self.z_scan_dwell_time_image_scan_spin_box.setProperty("value", 30.0)
         self.z_scan_dwell_time_image_scan_spin_box.setObjectName("z_scan_dwell_time_image_scan_spin_box")
         self.label_12 = QtWidgets.QLabel(self.z_scan_controls)
         self.label_12.setGeometry(QtCore.QRect(10, 60, 81, 20))
@@ -110,13 +110,3 @@ class Ui_z_scan_widget(object):
         self.label_14.setText(_translate("z_scan_widget", "Peak Distance"))
         self.z_max_position_label.setText(_translate("z_scan_widget", "Z(μm):"))
         self.z_counts_max_label.setText(_translate("z_scan_widget", "kCounts/s:"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    z_scan_widget = QtWidgets.QWidget()
-    ui = Ui_z_scan_widget()
-    ui.setupUi(z_scan_widget)
-    z_scan_widget.show()
-    sys.exit(app.exec_())
