@@ -123,7 +123,7 @@ class CacliJpeCadm2(PositionerSingleAxis):
     # For a connected device there isn't much to check with a third party controlled device 
     def make_connection(self):
         if not self.check_cacli_connection():
-            raise Exception(f"Failed to connect to specified device target: {self.piezo_target}")
+            raise Exception(f"Failed to connect to specified device target: {self.piezo_driver_target}")
         
     def close_connection(self):
         pass
