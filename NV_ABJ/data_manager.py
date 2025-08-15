@@ -8,6 +8,7 @@ import fnmatch
 import uuid
 import h5py
 from dataclasses import dataclass
+import time
 
 from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import Sequence
 class DataManager:
@@ -21,27 +22,23 @@ class DataManager:
     @dataclass
     class attributes:
         # These should generally be filled pout by the user 
-        sample:str = None # Identifiable sample name 
-        diamond:str = None # Identifiable diamond name 
-        nv_orientation:list[int] = None # Orientations of the NV(s) in question 
-        notes:str = None
-
-        # These should be auto filled out by the measurement class called 
-        _measurement_class_name:str = None # This is the name of the class used to measure in python __name__ 
-        _measurement_class_inputs:dict[str:any] = None # This is going to be what inputs were to go into the measurement class {kwarg0:value0, kwarg1:value1,...}
-        _sequence_class:Sequence = None # This is the sequence class for the measurement 
-        _number_of_measurements_per_point:int = None # How many times you average at a point before moving on to the next 
-        _number_of_points_per_sweep:int = None # How many points for a given sweep
-        _number_of_sweeps:int = None # How many sweeps for the overall average
-        _time_of_measurement:float = None # Seconds from epoch saved 
+        sample:str # Identifiable sample name 
+        diamond:str # Identifiable diamond name 
+        nv_orientation:list[int] # Orientations of the NV(s) in question 
+        setup_notes:str
 
 
 
 
-    def __init__(self, default_save_location, default_save_type=file_type.hdf5, uuid_length:int = 10):
+
+    def __init__(self, default_save_location:str,sample:str = None,diamond:str = None,nv_orientation:list[int] = None,setup_notes:str = None,
+                  default_save_type=file_type.hdf5, uuid_length:int = 10):
         self.default_save_location = default_save_location
         self.default_save_type = default_save_type
         self.uuid_length = uuid_length
+
+        self._attr = DataManager.attributes(sample,diamond, nv_orientation,setup_notes)
+
 
         # Checking for default location and creating it if it doesn't exist  
         if not os.path.exists(default_save_location):
@@ -82,7 +79,7 @@ class DataManager:
         
         return file_name, file_path
     
-    def save_hdf5(self, data_dict:dict, attr:attributes = None,folder_path:str=None,file_path:str=None)-> str:
+    def save_hdf5(self, data_dict:dict,measurement_parameters_dict:dict=None,folder_path:str=None,file_path:str=None)-> str:
         """This is the save method for the hdf5 format it takes a dictionary of data but is also able to take a list of
         attributes to make searching easier, a folder path if you don't want to save it as the default folder and a 
         file path if you want overwrite the default file save mechanism. File path will override the folder path and file extension 
@@ -98,7 +95,11 @@ class DataManager:
         Returns:
             str: file path 
         """
-        data_tag = str(attr.__dict__["_measurement_class_name"])
+
+        data_tag = measurement_parameters_dict["measurement_name"]
+
+        if data_tag == None:
+            data_tag = self.__class__.__name__
 
         if folder_path == None and file_path == None:
             # Default  save method 
@@ -115,13 +116,23 @@ class DataManager:
         # creating a file
         with h5py.File(_file_path, 'w') as f: 
             for data_key in data_dict:
-                f.create_dataset(str(data_key), data = data_dict[data_key])
+                if str(data_to_save := data_dict[data_key]) != str(None):
+                    f.create_dataset(str(data_key), data = data_to_save)#, compression='gzip')
+
+            if measurement_parameters_dict != None:
+                for data_key in measurement_parameters_dict:
+                    if str(data_to_save := measurement_parameters_dict[data_key]) != str(None):
+                        print(data_to_save)
+                        f.create_dataset(str(data_key), data = data_to_save)
 
             # Adding attributes to file if needed
-            if attr != None:
-                for attribute_key in attr.__dict__:
-                    if (attr_value := attr.__dict__[attribute_key]) != None:
+            if self._attr != None:
+                for attribute_key in self._attr.__dict__:
+                    if (attr_value := self._attr.__dict__[attribute_key]) != None:
+                        print(attr_value)
                         f.attrs[attribute_key] = attr_value
+            
+
             
         return _file_path
     
@@ -132,7 +143,7 @@ class DataManager:
         with h5py.File(file_path, 'r') as f: 
             data_set_names = f.keys()
             for data_name in data_set_names:
-                data_dict[data_name] = f[data_name][:]
+                data_dict[data_name] = f[data_name][()]
     
         return data_dict
     
@@ -174,3 +185,61 @@ class DataManager:
 
         return file_paths
 
+
+    def save_measurement_sequence_data(self, data_dict:dict,measurement_name:str,measurement_class_inputs:dict[str:any],sequence_class:Sequence,number_of_measurements_per_point:int,
+                  number_of_points_per_sweep:int,number_of_sweeps:int,measurement_notes:str = None,file_type:file_type=None):
+        # These should be auto filled out by the measurement class called 
+        self.time_of_save:float = time.time()
+
+        if file_type == None:
+            file_type = self.default_save_type
+
+        protected_names = ["SequenceClass","MeasurementNotes"]
+
+        for name in protected_names:
+            if name in data_dict.keys():
+                raise NameError(f"You can not use the name:{name} in your data dictionary please select a different name. Protected Names:{protected_names}")
+        
+        # data_dict["SequenceClass"] = sequence_class.instructions()
+        data_dict["MeasurementNotes"] = measurement_notes
+        
+        measurement_parameters = {"measurement_name":measurement_name,
+                                  "measurement_class_inputs":measurement_class_inputs,
+                                  "number_of_measurements_per_point":number_of_measurements_per_point,
+                                  "number_of_points_per_sweep":number_of_points_per_sweep,
+                                  "number_of_sweeps":number_of_sweeps,
+                                  }
+
+        match(file_type):
+            case DataManager.file_type.hdf5:
+                self.save_hdf5(data_dict=data_dict,measurement_parameters_dict=measurement_parameters)
+            case _:
+                raise NotImplementedError(f"The requested file type{_} does not have an implemented save functionality")
+
+
+if __name__ == "__main__":
+
+    import numpy as np
+    from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import *
+    number_samples = int(20e3*200*15)
+    print(number_samples)
+    data = np.linspace(0,10_000_000,10_000_000)
+
+    data_manager = DataManager(default_save_location=r"C:\Users\LTSPM2\Desktop",
+                               sample="Sample Test",
+                               diamond="Diamond Test",
+                               )
+    dev1 = SequenceDevice(0)
+    
+    seq = Sequence()
+    seq.add_step(2000, [dev1])
+    
+    data_manager.save_measurement_sequence_data(data_dict={"Numbers":data},
+                                                measurement_class_inputs=[1,2,5],
+                                                measurement_name="Random Measurement",
+                                                sequence_class=seq,
+                                                number_of_measurements_per_point=10,
+                                                number_of_points_per_sweep=100 ,
+                                                number_of_sweeps=10)
+    
+    # print(data_manager.load_hdf5(r"C:\Users\LTSPM2\Desktop\2025-05-08\Random Measurement_1_806cbd464b.hdf5"))

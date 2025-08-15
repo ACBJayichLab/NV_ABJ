@@ -123,7 +123,7 @@ class CacliJpeCadm2(PositionerSingleAxis):
     # For a connected device there isn't much to check with a third party controlled device 
     def make_connection(self):
         if not self.check_cacli_connection():
-            raise Exception(f"Failed to connect to specified device target: {self.piezo_target}")
+            raise Exception(f"Failed to connect to specified device target: {self.piezo_driver_target}")
         
     def close_connection(self):
         pass
@@ -138,7 +138,8 @@ class CacliJpeCadm2(PositionerSingleAxis):
                 p = Popen(command.split(" "), stdin=PIPE, stdout=PIPE, stderr=PIPE)
                 output, err = p.communicate(b"input data that is passed to subprocess' stdin",timeout=self.time_out)
                 return output.decode("utf-8")
-            except:
+            except Exception as e:
+                print(e)
                 if retry_after_failure:
                     time.sleep(self.delay_between_attempts_s)
                 else:
@@ -168,3 +169,26 @@ class CacliJpeCadm2(PositionerSingleAxis):
     def __repr__(self):
         return f"Target Id: {self.piezo_driver_target}\nAddress: {self.piezo_address}\nStage: {self.piezo_stage}"
 
+
+
+if __name__ == "__main__":
+    # piezo_driver_target = '1038E201905-12'
+
+    # outer_a_jpe = CacliJpeCadm2(piezo_driver_target = piezo_driver_target,
+    #                           piezo_address = 1,
+    #                           piezo_stage = "CLA2603",
+    #                           temperature_kelvin = 300,
+    #                           frequency_hz = 250,
+    #                           relative_step_size_percent = 100,
+    #                           delay_between_attempts_s = 2)
+    
+    # outer_a_jpe.time_out = 2
+    
+    
+    # outer_a_jpe.move_positioner(1,200)
+    dir = r"C:\Users\LTSPM2\Documents\GitHub\LTSPM2_Interfaces\experimental_configuration\third_party_command_line_interfaces\CPSC_v7.3.20210802"
+    cmd = ".\cacli.exe MOV 1 1 250 100 100 300 CLA2603 1"
+
+    import subprocess
+    p = subprocess.Popen([".\calci.exe", "/USB"], cwd=dir)
+    p.wait()

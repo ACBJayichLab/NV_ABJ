@@ -161,16 +161,16 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
         self.samp_clk_task.stop()
 
         # Returning the final number of counts 
-        return edge_counts
-
+        return edge_counts       
     
-    def get_counts_raw_when_triggered(self, number_of_data_taking_cycles:int)-> NDArray[np.int64]:
+    def get_counts_raw_when_triggered(self, number_of_data_taking_cycles:int, continuous_line:bool = False, double_samples = True)-> NDArray[np.int64]:
         """get_counts_raw nominally you can call it simply with 
         
             raw_counts = photon_counter.get_counts_raw(number_of_data_taking_cycles)
 
         Args:
             number_of_data_taking_cycles (int): This is the number of cycles when where samples will be taken and is how long the list will be 
+            continuous_line(bool, optional): Defaults to False. This is false if you want the counts between two points and true if you want the counts at every trigger
 
         Raises:
             ValueError: The if the number of clock cycles can not be achieved with the max sampling rate an error is raised 
@@ -209,11 +209,17 @@ class NiPhotonCounterDaqControlled(PhotonCounter):
             self.ext_trig_read_task.control(TaskMode.TASK_COMMIT)
             self._load_ext_triggered = False
         
+        if double_samples:
+            number_of_data_taking_cycles = number_of_data_taking_cycles*2
             
         self.ext_trig_read_task.start()
-        edge_counts = self.ext_trig_read_task.read(number_of_samples_per_channel=number_of_data_taking_cycles*2,timeout=100)
+        edge_counts = self.ext_trig_read_task.read(number_of_samples_per_channel=number_of_data_taking_cycles,timeout=self.timeout_waiting_for_data_s)
         self.ext_trig_read_task.stop()
-        list_counts = np.array(edge_counts[1::2])-np.array(edge_counts[::2])
+
+        if not continuous_line:
+            list_counts = np.array(edge_counts[1::2])-np.array(edge_counts[::2])
+        else:
+            list_counts = edge_counts
 
         return list_counts
 

@@ -34,6 +34,7 @@ class Ui_image_scan_widget(object):
         self.z_confocal_spin_box.setDecimals(3)
         self.z_confocal_spin_box.setMinimum(-50.0)
         self.z_confocal_spin_box.setMaximum(50.0)
+        self.z_confocal_spin_box.setSingleStep(0.25)
         self.z_confocal_spin_box.setObjectName("z_confocal_spin_box")
         self.x_confocal_spin_box = QtWidgets.QDoubleSpinBox(self.confocal_controls_frame)
         self.x_confocal_spin_box.setGeometry(QtCore.QRect(40, 10, 101, 22))
@@ -115,13 +116,3 @@ class Ui_image_scan_widget(object):
         self.label_19.setText(_translate("image_scan_widget", "Z(μm)"))
         self.full_image_scan_push_button.setText(_translate("image_scan_widget", "Full Scan"))
         self.update_cursor_location_push_button.setText(_translate("image_scan_widget", "Update Cursor"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    image_scan_widget = QtWidgets.QWidget()
-    ui = Ui_image_scan_widget()
-    ui.setupUi(image_scan_widget)
-    image_scan_widget.show()
-    sys.exit(app.exec_())
