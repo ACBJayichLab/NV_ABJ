@@ -1,4 +1,3 @@
-
 # imports 
 import numpy as np # for the actual calculations 
 import numpy.typing as npt # for type hinting numpy
@@ -7,7 +6,7 @@ import pandas as pd # importing and manipulating the data
 import matplotlib.pyplot as plt # plotting the data 
 from scipy.optimize import leastsq # fitting the fucntions to the ESR data 
 
-class CwesrAnalysis:
+class EsrAnalysis:
 
     def __init__(self, frequency_data: npt.ArrayLike, power_level_data: npt.ArrayLike, error_in_pl: npt.ArrayLike):
         # bringing in the data 
