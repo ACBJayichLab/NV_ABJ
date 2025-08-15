@@ -36,22 +36,19 @@ class PulsedESR(MeasurementSequence):
 
         return seq
 
-    def experimental_setup(self, rf_source:MicrowaveSource, frequency_list_hz:npt.NDArray, rf_amplitude_dbm:npt.NDArray, number_of_data_taking_cycles:int)->int:
+    def experimental_setup(self, rf_source:MicrowaveSource, frequency_list_hz:npt.NDArray, rf_amplitude_dbm:npt.NDArray, *args, **kwargs)->None:
         """This loads the RF source needed"""
         with rf_source:
             rf_source.prime_sinusoidal_rf(frequency_list_hz=frequency_list_hz, rf_amplitude_dbm=rf_amplitude_dbm)
             rf_source.iterate_next_waveform()
-        
-        return number_of_data_taking_cycles*2
     
-
-    def counts_to_raw_counts(self, data:tuple)->tuple[npt.NDArray,npt.NDArray]:
+    def counts_to_raw_counts(self, counts:tuple, *args, **kwargs)->tuple[npt.NDArray,npt.NDArray]:
         """Pulsed ESR Seq every bin is the same iteration so this is simply where we just get the counts even minus odd indexes. It then separates the dark and signal"""
-        signal = np.array(data[::2])
-        reference = np.array(data[1::2])
+        signal = np.array(counts[::2])
+        reference = np.array(counts[1::2])
+
         return signal,reference
 
-    def counts_to_counts_per_second(self, data:tuple, dwell_time_s:float)->npt.NDArray:
+    def counts_to_counts_per_second(self, data:tuple, dwell_time_s:float, *args, **kwargs)->npt.NDArray:
         signal, reference = self.counts(data)
         return signal/dwell_time_s, reference/dwell_time_s
-
