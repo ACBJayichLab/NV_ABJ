@@ -11,7 +11,7 @@ dependencies = ["pyvisa",
                 "pandas",
                 "nidaqmx"
                 ]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 authors = [
   {name = "Aaron Schwan", email = "schwanaaron@gmail.com"},
 ]
