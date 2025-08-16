@@ -4,7 +4,7 @@ import numpy.typing as npt # for type hinting numpy
 import pandas as pd # importing and manipulating the data
 
 import matplotlib.pyplot as plt # plotting the data 
-from scipy.optimize import leastsq # fitting the fucntions to the ESR data 
+from scipy.optimize import leastsq # fitting the functions to the ESR data 
 
 class EsrAnalysis:
 

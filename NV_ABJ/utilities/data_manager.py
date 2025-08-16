@@ -1,7 +1,7 @@
 __all__ = ["DataManager"]
 """This module is meant to allow for a standard way to import and export data to python and matlab 
 """
-from enum import StrEnum
+from enum import Enum
 import os 
 import datetime
 import fnmatch
@@ -12,8 +12,8 @@ import time
 
 from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import Sequence
 class DataManager:
-    class file_type(StrEnum):
-        hdf5 = "hdf5"
+    class file_type:
+        hdf5:str = "hdf5"
         # Not implemented yet
         # csv = "csv"
         # txt = "txt"
@@ -210,11 +210,11 @@ class DataManager:
                                   "number_of_sweeps":number_of_sweeps,
                                   }
 
-        match(file_type):
-            case DataManager.file_type.hdf5:
-                self.save_hdf5(data_dict=data_dict,measurement_parameters_dict=measurement_parameters)
-            case _:
-                raise NotImplementedError(f"The requested file type{_} does not have an implemented save functionality")
+    
+        if file_type == DataManager.file_type.hdf5:
+            self.save_hdf5(data_dict=data_dict,measurement_parameters_dict=measurement_parameters)
+        else:
+            raise NotImplementedError(f"The requested file type{_} does not have an implemented save functionality")
 
 
 if __name__ == "__main__":

@@ -131,7 +131,7 @@ class Sequence:
         return f"\nSteps:\n{steps_text}\nDevice:{self.devices}"
     
 
-    def linear_time_sequence(self,wrapped:bool=True)-> tuple[dict,set]:
+    def linear_time_sequence(self,wrapped:bool=True):
         """This function generates a linear time progression of the sequences and raises errors if a sequence is not possible due to timing of the 
         delays on a device interacting with times it was previously on. It also applies the delay for the devices 
 
@@ -204,7 +204,7 @@ class Sequence:
 
                         # Checks if the delay time is overlapping with when it was previously on
                         if len(sequence_devices[device.address]["on_times_ns"]) > 0 and max(sequence_devices[device.address]["on_times_ns"]) > device_time:
-                            raise ValueError(f"The devices delayed on overlaps with when it was previously on the duration.\nDevice:{sequence_devices[device.address]["device"]}\nStep:{step}\nIndex:{ind}")
+                            raise ValueError(f"The devices delayed on overlaps with when it was previously on the duration.\nDevice:{sequence_devices[device.address]}\nStep:{step}\nIndex:{ind}")
 
                         sequence_devices[device.address]["on_times_ns"].add(device_time)
                         step_times_ns.add(device_time)
@@ -387,7 +387,7 @@ class Sequence:
 
         return instructions,sub_routines
     
-    def add_devices(self, devices_to_add:list[SequenceDevice]):
+    def add_devices(self, devices_to_add:list):
         """if you have inverted devices that are not called you should add your devices here"""
         for device in devices_to_add:
             self.devices.add(device.config)    
