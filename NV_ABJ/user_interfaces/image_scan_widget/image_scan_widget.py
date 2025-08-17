@@ -57,7 +57,7 @@ class ImageScanWidget(Ui_image_scan_widget):
     def __init__(self,window,
                   confocal_controls:ConfocalControls,
                   default_save_config,
-                  default_position_um:tuple[float,float,float] = None,
+                  default_position_um = None,
                   image_scan_config:config = config(),
                   running:bool = False,
                   update_ui:bool = False,
@@ -124,15 +124,15 @@ class ImageScanWidget(Ui_image_scan_widget):
 
     # Easy calls for the position limits 
     @property
-    def x_scanning_range(self) -> tuple[float,float]:
+    def x_scanning_range(self):
         return self.confocal_controls.scanner_x.position_limits_m
     
     @property
-    def y_scanning_range(self) -> tuple[float,float]:
+    def y_scanning_range(self):
         return self.confocal_controls.scanner_y.position_limits_m
    
     @property
-    def z_scanning_range(self) -> tuple[float,float]:
+    def z_scanning_range(self):
         return self.confocal_controls.scanner_z.position_limits_m
     
     def update_on_graph_resize(self, *args, **kwargs):

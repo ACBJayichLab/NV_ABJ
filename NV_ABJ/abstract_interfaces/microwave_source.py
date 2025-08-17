@@ -12,7 +12,7 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def frequency_range_hz(self)->tuple[float,float]:
+    def frequency_range_hz(self):
         """This is the frequency range that the prime sinusoidal rf is able to generate in 
 
         Returns:
@@ -21,7 +21,7 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def amplitude_range_dbm(self)->tuple[float,float]:
+    def amplitude_range_dbm(self):
         """This is the amplitude range that the prime sinusoidal rf is able to generate in 
 
         Returns:
@@ -30,9 +30,9 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
 
 
     @abstractmethod
-    def prime_sinusoidal_rf(self,frequency_list_hz:npt.NDArray[np.float64],
-                        rf_amplitude_dbm:npt.NDArray[np.float64],
-                        duration_s:npt.NDArray[np.float64],
+    def prime_sinusoidal_rf(self,frequency_list_hz,
+                        rf_amplitude_dbm,
+                        duration_s,
                         *args,**kwargs):
         """This is a generalized function that is meant to allow for an experimental signal generation this 
         is meant to be implemented so the experimental logic for a cwesr, pulsed esr, or tau sweep will work properly.
@@ -52,18 +52,18 @@ class MicrowaveSource(ConnectedDevice,metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def turn_on_signal(self)->None:
+    def turn_on_signal(self):
         """This turns on the signal source as a continuous operation 
         """
         pass 
 
     @abstractmethod
-    def turn_off_signal(self)->None:
+    def turn_off_signal(self):
         """This turns off the signal source and will not turn off the device 
         """
         pass   
     @abstractmethod
-    def iterate_next_waveform(self)->None:
+    def iterate_next_waveform(self):
         """This will iterate through the loaded frequency list essentially setting the current frequency to the triggered values
         """
         pass

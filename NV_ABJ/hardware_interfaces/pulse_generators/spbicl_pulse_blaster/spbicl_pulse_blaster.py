@@ -11,7 +11,7 @@ from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import Se
 
 
 class SpbiclPulseBlaster(PulseGenerator):
-    def __init__(self,spbicl_path:str=None,controlled_devices:list[SequenceDevice]=None,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
+    def __init__(self,spbicl_path:str=None,controlled_devices:list=None,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
         """This class interfaces with the pulse blaster using the command line interpreter provided by 
         SpinCore as an exe "spbicl.exe" 
 

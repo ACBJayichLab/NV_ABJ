@@ -11,7 +11,7 @@ from NV_ABJ.user_interfaces.shelving_variables.exporting.generated_ui import Ui_
 class ExportingVariablesWidget(Ui_exporting_variables):
 
     def __init__(self,window,
-                 savable_variables:dict[str,any],
+                 savable_variables:dict,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(window)

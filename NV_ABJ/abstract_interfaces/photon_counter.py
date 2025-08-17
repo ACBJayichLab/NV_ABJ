@@ -11,7 +11,7 @@ class PhotonCounter(ConnectedDevice,metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def get_counts_raw(self,dwell_time_s:float)-> int:
+    def get_counts_raw(self,dwell_time_s:float):
         """This function when implemented should get the raw counts during the dwell time 
 
         Args:
@@ -23,7 +23,7 @@ class PhotonCounter(ConnectedDevice,metaclass=ABCMeta):
         ...
     
     @abstractmethod
-    def get_counts_raw_when_triggered(self,number_of_data_taking_cycles:int) -> NDArray[np.int64]:
+    def get_counts_raw_when_triggered(self,number_of_data_taking_cycles:int):
         """ This should wait for a amount of time for a trigger that should be supplied by the sequence generator it then should take data for that amount of time 
         Args:
             dwell_time_ns (int): how long it takes a sample for 
@@ -33,7 +33,7 @@ class PhotonCounter(ConnectedDevice,metaclass=ABCMeta):
             NDArray[np.int64]: returns a list of the sequences that have been triggered during a dwell time 
         """
     
-    def get_counts_per_second(self,dwell_time_s:float) ->int:
+    def get_counts_per_second(self,dwell_time_s:float):
         """Calls get_counts_raw and return the divided value by the dwell time 
 
         Args:
