@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import matplotlib
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
 

@@ -89,15 +89,14 @@ class CacliJpeCadm2(PositionerSingleAxis):
             raise ValueError(f"TRQFR must be set between 1 and 30  as well as being an integer you entered {trqfr}")
 
         # Chooses the versions commands 
-        match version:
-            case CacliVersion.v6:
-                command = f"cacli @{piezo_driver_target} MOV {piezo_address} {piezo_stage} {temperature_kelvin} {direction} {frequency_hz} {relative_step_size} {steps} {trqfr}"
-            case CacliVersion.v7:
-                command = f"cacli @{piezo_driver_target} MOV {piezo_address} {direction} {frequency_hz} {relative_step_size} {steps} {temperature_kelvin} {piezo_stage} {trqfr}"
-            case _:
-                raise NotImplemented(f"The cacli version {version.name} has not been implemented yet")
+        if version == CacliVersion.v6:
+            command = f"cacli @{piezo_driver_target} MOV {piezo_address} {piezo_stage} {temperature_kelvin} {direction} {frequency_hz} {relative_step_size} {steps} {trqfr}"
+        elif version == CacliVersion.v7:
+            command = f"cacli @{piezo_driver_target} MOV {piezo_address} {direction} {frequency_hz} {relative_step_size} {steps} {temperature_kelvin} {piezo_stage} {trqfr}"
+        else:
+            raise NotImplemented(f"The cacli version {version.name} has not been implemented yet")
         
-        response = self.cacli_command(command)
+        response = self.cacli_command_without_waiting(command)
 
         return response
 
@@ -149,7 +148,13 @@ class CacliJpeCadm2(PositionerSingleAxis):
                     return -1
                 
         raise Exception(f"Failed to execute {command} after {self.number_of_attempts} attempts")
-        
+    
+    def cacli_command_without_waiting(self,command):
+        try:
+            Popen(command.split(" "), stdin=PIPE)
+        except Exception as e:
+            print(e)
+
     def check_cacli_connection(self):
         
         # call command
@@ -172,23 +177,23 @@ class CacliJpeCadm2(PositionerSingleAxis):
 
 
 if __name__ == "__main__":
-    # piezo_driver_target = '1038E201905-12'
+    piezo_driver_target = '1038E201905-12'
 
-    # outer_a_jpe = CacliJpeCadm2(piezo_driver_target = piezo_driver_target,
-    #                           piezo_address = 1,
-    #                           piezo_stage = "CLA2603",
-    #                           temperature_kelvin = 300,
-    #                           frequency_hz = 250,
-    #                           relative_step_size_percent = 100,
-    #                           delay_between_attempts_s = 2)
+    outer_a_jpe = CacliJpeCadm2(piezo_driver_target = piezo_driver_target,
+                              piezo_address = 1,
+                              piezo_stage = "CLA2603",
+                              temperature_kelvin = 300,
+                              frequency_hz = 250,
+                              relative_step_size_percent = 100,
+                              delay_between_attempts_s = 2)
     
-    # outer_a_jpe.time_out = 2
+    outer_a_jpe.time_out = 2
     
     
-    # outer_a_jpe.move_positioner(1,200)
-    dir = r"C:\Users\LTSPM2\Documents\GitHub\LTSPM2_Interfaces\experimental_configuration\third_party_command_line_interfaces\CPSC_v7.3.20210802"
-    cmd = ".\cacli.exe MOV 1 1 250 100 100 300 CLA2603 1"
+    outer_a_jpe.move_positioner(1,500)
+    # dir = r"C:\Users\LTSPM2\Documents\GitHub\LTSPM2_Interfaces\experimental_configuration\third_party_command_line_interfaces\CPSC_v7.3.20210802"
+    # cmd = ".\cacli.exe MOV 1 1 250 100 100 300 CLA2603 1"
 
-    import subprocess
-    p = subprocess.Popen([".\calci.exe", "/USB"], cwd=dir)
-    p.wait()
+    # import subprocess
+    # p = subprocess.Popen([".\calci.exe", "/USB"], cwd=dir)
+    # p.wait()

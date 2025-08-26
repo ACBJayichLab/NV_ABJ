@@ -81,3 +81,9 @@ class Lakeshore336(ConnectedDevice):
         self._ser.write((f'RDGST? {channel}\n').encode())
         return float(self._ser.readline().decode("ascii"))
     
+
+if __name__ == "__main__":
+    with Lakeshore336(7) as lakeshore:
+        print(lakeshore.get_set_temperature_k("a"))
+        lakeshore.set_temperature_k("a",305)
+        print(lakeshore.get_set_temperature_k("a"))
