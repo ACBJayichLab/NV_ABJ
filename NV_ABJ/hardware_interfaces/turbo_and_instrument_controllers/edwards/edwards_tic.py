@@ -75,3 +75,7 @@ class EdwardsTIC(ConnectedDevice):
 
     def turn_backing_off(self):
         self.send_command("C910",0)
+
+if __name__ == "__main__":
+    with EdwardsTIC(5) as ed:
+        print(ed.query_command("S924"))
