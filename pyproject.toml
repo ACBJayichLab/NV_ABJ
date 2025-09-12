@@ -8,8 +8,26 @@ version = "0.0.01"
 dependencies = ["pyvisa",
                 "numpy",
                 "scipy",
+                "matplotlib",
+                "qtpy5",
+                "pyqt5-tools",
                 "pandas",
-                "nidaqmx"
+                "nidaqmx",
+                "sumitomo_f70",
+                "serial",
+                "multiprocessing",
+                "subprocess",
+                "os",
+                "sys",
+                "tempfile",
+                "time",
+                "datetime",
+                "h5py",
+                "uuid",
+                "fnmatch",
+                "dataclasses",
+                "shelve",
+                "pathlib",
                 ]
 requires-python = ">=3.8"
 authors = [
