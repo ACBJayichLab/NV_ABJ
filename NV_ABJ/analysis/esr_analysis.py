@@ -216,13 +216,3 @@ class EsrAnalysis:
         plt.legend()
         
         plt.show(block=False)
-    
-    @classmethod
-    def data_from_matlab_output(cls,file_path):
-        # Simple method for making the class using data that is output from the standard matlab program
-        data = pd.read_csv(file_path,sep="\t")
-        frequency = data["Frequency"]
-        average_counts = data["AverageCountRate"]
-        error_in_pl = data["Error"]
-
-        return cls(frequency,average_counts,error_in_pl)
