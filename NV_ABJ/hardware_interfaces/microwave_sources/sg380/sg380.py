@@ -103,13 +103,12 @@ class SG380(MicrowaveSource):
         """
 
         # Setting the SRS frequency 
-        match self.channel:
-            case SG380Channels.n_type:
-                self.send_list(frequency_list_hz=frequency_list_hz,
-                                amplitude_list_n_type_dbm=rf_amplitude_dbm)
-            case SG380Channels.bnc:
-                self.send_list(frequency_list_hz=frequency_list_hz,
-                                amplitude_list_bnc_dbm=rf_amplitude_dbm)
+        if self.channel == SG380Channels.n_type:
+            self.send_list(frequency_list_hz=frequency_list_hz,
+                            amplitude_list_n_type_dbm=rf_amplitude_dbm)
+        else:
+            self.send_list(frequency_list_hz=frequency_list_hz,
+                            amplitude_list_bnc_dbm=rf_amplitude_dbm)
 
         # Turning on the signal 
         self.turn_on_signal()
@@ -118,21 +117,20 @@ class SG380(MicrowaveSource):
         """Turns on the signal source this will map to the specific port in question
           and does not turn on the device just the signal
         """
-        match self.channel:
-            case SG380Channels.n_type:
-               self.n_type_on()
-            case SG380Channels.bnc:
-                self.bnc_on()
+        
+        if self.channel == SG380Channels.n_type:
+            self.n_type_on()
+        else:
+            self.bnc_on()
 
 
     def turn_off_signal(self):
         """This turns off the signal source and will not turn off the device 
         """
-        match self.channel:
-            case SG380Channels.n_type:
-               self.n_type_off()
-            case SG380Channels.bnc:
-                self.bnc_off()
+        if self.channel == SG380Channels.n_type:
+            self.n_type_off()
+        else:
+            self.bnc_off()
 
 
     def iterate_next_waveform(self):
@@ -146,20 +144,18 @@ class SG380(MicrowaveSource):
     def set_power_dbm(self,amplitude:float):
         """Sets the signal power in dBm 
         """
-        match self.channel:
-            case SG380Channels.n_type:
-                self.change_amplitude_n_type(amplitude)
-            case SG380Channels.bnc:
-                self.change_amplitude_bnc(amplitude)
+        if self.channel == SG380Channels.n_type:
+            self.change_amplitude_n_type(amplitude)
+        else:
+            self.change_amplitude_bnc(amplitude)
     
     def get_power_dbm(self)->float:
         """Sets the signal power in dBm 
         """
-        match self.channel:
-            case SG380Channels.n_type:
-                return float(self.get_n_type_amplitude())
-            case SG380Channels.bnc:
-                return float(self.get_bnc_amplitude())
+        if self.channel == SG380Channels.n_type:
+            return float(self.get_n_type_amplitude())
+        else:
+            return float(self.get_bnc_amplitude())
 
 
     def get_list(self):

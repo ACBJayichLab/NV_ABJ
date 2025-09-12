@@ -1,7 +1,7 @@
 __all__ = ["DataManager"]
 """This module is meant to allow for a standard way to import and export data to python and matlab 
 """
-from enum import StrEnum
+from enum import Enum
 import os 
 import datetime
 import fnmatch
@@ -12,8 +12,8 @@ import time
 
 from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import Sequence
 class DataManager:
-    class file_type(StrEnum):
-        hdf5 = "hdf5"
+    class file_type(Enum):
+        hdf5:str = "hdf5"
         # Not implemented yet
         # csv = "csv"
         # txt = "txt"
@@ -24,14 +24,14 @@ class DataManager:
         # These should generally be filled pout by the user 
         sample:str # Identifiable sample name 
         diamond:str # Identifiable diamond name 
-        nv_orientation:list[int] # Orientations of the NV(s) in question 
+        nv_orientation:list # Orientations of the NV(s) in question 
         setup_notes:str
 
 
 
 
 
-    def __init__(self, default_save_location:str,sample:str = None,diamond:str = None,nv_orientation:list[int] = None,setup_notes:str = None,
+    def __init__(self, default_save_location:str,sample:str = None,diamond:str = None,nv_orientation:list = None,setup_notes:str = None,
                   default_save_type=file_type.hdf5, uuid_length:int = 10):
         self.default_save_location = default_save_location
         self.default_save_type = default_save_type
@@ -148,7 +148,8 @@ class DataManager:
         return data_dict
     
 
-    def search_for_hdf5(self, folder_path:str, attr:attributes)->list[str]:
+
+    def search_for_hdf5(self, folder_path:str, attr:attributes):
         """This searches through a folder only to a single level down and filters 
         through the file attributes that to find ones that match what you are looking for.
         This then returns a list of file paths for anything that matches 
@@ -186,7 +187,7 @@ class DataManager:
         return file_paths
 
 
-    def save_measurement_sequence_data(self, data_dict:dict,measurement_name:str,measurement_class_inputs:dict[str:any],sequence_class:Sequence,number_of_measurements_per_point:int,
+    def save_measurement_sequence_data(self, data_dict:dict,measurement_name:str,measurement_class_inputs:dict,sequence_class:Sequence,number_of_measurements_per_point:int,
                   number_of_points_per_sweep:int,number_of_sweeps:int,measurement_notes:str = None,file_type:file_type=None):
         # These should be auto filled out by the measurement class called 
         self.time_of_save:float = time.time()
@@ -210,36 +211,8 @@ class DataManager:
                                   "number_of_sweeps":number_of_sweeps,
                                   }
 
-        match(file_type):
-            case DataManager.file_type.hdf5:
-                self.save_hdf5(data_dict=data_dict,measurement_parameters_dict=measurement_parameters)
-            case _:
-                raise NotImplementedError(f"The requested file type{_} does not have an implemented save functionality")
-
-
-if __name__ == "__main__":
-
-    import numpy as np
-    from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import *
-    number_samples = int(20e3*200*15)
-    print(number_samples)
-    data = np.linspace(0,10_000_000,10_000_000)
-
-    data_manager = DataManager(default_save_location=r"C:\Users\LTSPM2\Desktop",
-                               sample="Sample Test",
-                               diamond="Diamond Test",
-                               )
-    dev1 = SequenceDevice(0)
     
-    seq = Sequence()
-    seq.add_step(2000, [dev1])
-    
-    data_manager.save_measurement_sequence_data(data_dict={"Numbers":data},
-                                                measurement_class_inputs=[1,2,5],
-                                                measurement_name="Random Measurement",
-                                                sequence_class=seq,
-                                                number_of_measurements_per_point=10,
-                                                number_of_points_per_sweep=100 ,
-                                                number_of_sweeps=10)
-    
-    # print(data_manager.load_hdf5(r"C:\Users\LTSPM2\Desktop\2025-05-08\Random Measurement_1_806cbd464b.hdf5"))
+        if file_type == DataManager.file_type.hdf5:
+            self.save_hdf5(data_dict=data_dict,measurement_parameters_dict=measurement_parameters)
+        else:
+            raise NotImplementedError(f"The requested file type does not have an implemented save functionality")

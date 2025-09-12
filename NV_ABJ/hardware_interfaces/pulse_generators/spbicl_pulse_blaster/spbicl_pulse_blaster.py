@@ -11,7 +11,7 @@ from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import Se
 
 
 class SpbiclPulseBlaster(PulseGenerator):
-    def __init__(self,spbicl_path:str=None,controlled_devices:list[SequenceDevice]=None,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
+    def __init__(self,spbicl_path:str=None,controlled_devices:list=None,clock_frequency_megahertz:int=500, maximum_step_time_s:float = 5,available_ports:int=23):
         """This class interfaces with the pulse blaster using the command line interpreter provided by 
         SpinCore as an exe "spbicl.exe" 
 
@@ -349,52 +349,3 @@ class SpbiclPulseBlaster(PulseGenerator):
 # # # # # #  ,-\ `-.' /.'  /
 # # # # # # '---`----'----' Art by Hayley Jane Wakenshaw
 # # # # # ##############################################################################################################
-
-if __name__ == "__main__":
-    from NV_ABJ.experimental_logic.sequence_generation.sequence_generation import SequenceDevice
-    import time 
-    from experimental_configuration import *
-    d1 = SequenceDevice(config={"address":0,
-                                            "device_label":"AOM Trigger",
-                                            "delayed_to_on_ns":0,
-                                            "inverted_output":True}
-                                    , device_status = True)
-    
-    d2 = SequenceDevice(config={"address":1,
-                                            "device_label":"AOM Trigger",
-                                            "delayed_to_on_ns":0,
-                                            "inverted_output":True}
-                                    , device_status = True)
-
-    d3 = SequenceDevice(config={"address":2,
-                                            "device_label":"AOM Trigger",
-                                            "delayed_to_on_ns":0,
-                                            "inverted_output":False}
-                                    , device_status = False)
-    
-    d4 = SequenceDevice(config={"address":3,
-                                            "device_label":"AOM Trigger",
-                                            "delayed_to_on_ns":0,
-                                            "inverted_output":False}
-                                    , device_status = True)
-        
-    spbicl_path=r"C:\SpinCore\SpinAPI\interpreter"
-    pulse_blaster = SpbiclPulseBlaster(spbicl_path=r"C:\SpinCore\SpinAPI\interpreter",controlled_devices=[d1,d2,d3,d4])
-    
-    dwell_time_s = 30e-3
-    
-    seq = Sequence()
-    seq.add_step(10000,[d1])
-    seq_text = pulse_blaster.generate_sequence(sequence_class=seq)
-    pulse_blaster.load(sequence=seq_text)
-    # pulse_blaster.start()
-    print("Starting Async")
-    pulse_blaster.start_asynchronous(0.2)
-    
-    print("loading function")
-    with photon_counter_1 as pc:
-        print(pc.get_counts_raw(dwell_time_s=dwell_time_s))
-    print("Finished Sequence")
-    # pulse_blaster.update_devices([d4])
-
-

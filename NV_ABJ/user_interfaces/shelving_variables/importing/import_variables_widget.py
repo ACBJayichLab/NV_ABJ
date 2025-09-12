@@ -11,7 +11,7 @@ from NV_ABJ.user_interfaces.shelving_variables.importing.generated_ui import Ui_
 class ImportingVariablesWidget(Ui_import_variables_widget):
 
     def __init__(self,window,
-                 importable_variables:dict[str,callable],
+                 importable_variables,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(window)
