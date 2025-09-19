@@ -12,6 +12,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationTool
 
 # Classes for Typing
 from NV_ABJ.experimental_logic.confocal_scanning import ConfocalControls
+from NV_ABJ import DataManager
 
 # Importing generated python code from qtpy ui
 from NV_ABJ.user_interfaces.image_scan_widget.generated_ui import Ui_image_scan_widget
@@ -56,7 +57,7 @@ class ImageScanWidget(Ui_image_scan_widget):
 
     def __init__(self,window,
                   confocal_controls:ConfocalControls,
-                  default_save_config,
+                  default_save_folder,
                   default_position_um = None,
                   image_scan_config:config = config(),
                   running:bool = False,
@@ -67,7 +68,9 @@ class ImageScanWidget(Ui_image_scan_widget):
 
         # Setting device controls 
         self.confocal_controls = confocal_controls
-        self.default_save_config = default_save_config
+        self.default_save_folder = default_save_folder
+        self.data_manager = DataManager(default_save_location=self.default_save_folder)
+
         self.running = running 
         self.update_ui = update_ui
         # This is for the main gui to allow locking when other widgets are running 
@@ -265,6 +268,17 @@ class ImageScanWidget(Ui_image_scan_widget):
             self.full_image_scan_push_button.setEnabled(True)
             self.local_image_scan_push_button.setEnabled(True)
 
+
+            if self.default_save_folder != None:
+                
+                data = {"xy_scan_sequence":self.worker.xy_scan,
+                        "x_values":self.worker.x_positions,
+                        "y_values":self.worker.y_positions}
+                
+                # Saving data 
+                self.data_manager.save_hdf5(data_dict=data,data_tag="2d_scan")
+
+
         # Getting spin box values 
         dwell_time_s = self.dwell_time_image_scan_spin_box.value()*1e-3
 
@@ -329,6 +343,8 @@ class ImageScanWidget(Ui_image_scan_widget):
         self.x_confocal_spin_box.setEnabled(False)
         self.y_confocal_spin_box.setEnabled(False)
         self.z_confocal_spin_box.setEnabled(False)
+        self.show_cursor_radio_button.setEnabled(False)
+
 
     
     def unfreeze_gui(self): 
@@ -340,3 +356,4 @@ class ImageScanWidget(Ui_image_scan_widget):
         self.x_confocal_spin_box.setEnabled(True)
         self.y_confocal_spin_box.setEnabled(True)
         self.z_confocal_spin_box.setEnabled(True)
+        self.show_cursor_radio_button.setEnabled(True)

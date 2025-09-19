@@ -79,7 +79,7 @@ class DataManager:
         
         return file_name, file_path
     
-    def save_hdf5(self, data_dict:dict,measurement_parameters_dict:dict=None,folder_path:str=None,file_path:str=None)-> str:
+    def save_hdf5(self, data_dict:dict,measurement_parameters_dict:dict=None,folder_path:str=None,file_path:str=None,data_tag:str=None)-> str:
         """This is the save method for the hdf5 format it takes a dictionary of data but is also able to take a list of
         attributes to make searching easier, a folder path if you don't want to save it as the default folder and a 
         file path if you want overwrite the default file save mechanism. File path will override the folder path and file extension 
@@ -91,15 +91,18 @@ class DataManager:
             file_attributes (dict, optional): list of attributes you wish to associate with the file. Defaults to None.
             folder_path (str, optional): Change from default save location method. Defaults to None.
             file_path (str, optional): Change folder, filename, and extension from default method. Defaults to None.
+            data_tag(str,optional): adds names. Defaults to None.
 
         Returns:
             str: file path 
         """
-
-        data_tag = measurement_parameters_dict["measurement_name"]
-
-        if data_tag == None:
-            data_tag = self.__class__.__name__
+        if measurement_parameters_dict != None:
+            data_tag = measurement_parameters_dict["measurement_name"]
+        try:
+            if data_tag == None:
+                data_tag = self.__class__.__name__
+        except:
+            data_tag = "no value entered"
 
         if folder_path == None and file_path == None:
             # Default  save method 
