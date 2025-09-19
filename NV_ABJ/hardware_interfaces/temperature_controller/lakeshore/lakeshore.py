@@ -1,7 +1,7 @@
 from NV_ABJ.abstract_interfaces.connected_device import ConnectedDevice
-import pyvisa
 import serial
 import numpy as np
+import pyvisa
 
 class Lakeshore336(ConnectedDevice):
     def __init__(self,gpib_address:str = None, com_port:int = None,baudrate:int=57_600, timeout=1,parity=serial.PARITY_ODD, data_bits = 7,stop_bits = 1,flow_control=None,handshaking = None):
@@ -20,7 +20,7 @@ class Lakeshore336(ConnectedDevice):
         
         # You must either specify a com port or gpib port 
         if gpib_address != None:
-            self.gpib_control = True
+           self.gpib_control = True
         elif com_port != None:
             self.gpib_control = False
         else:
@@ -177,5 +177,3 @@ class Lakeshore336(ConnectedDevice):
     
     def get_alarm_status(self, channel):
         return np.array(self.query_command(f'ALARMST? {channel}')).astype(bool)
-
- 
