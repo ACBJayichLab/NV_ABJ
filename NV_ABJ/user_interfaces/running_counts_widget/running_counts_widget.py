@@ -54,7 +54,6 @@ class RunningCountsWidget(Ui_running_counts_widget):
 
     def __init__(self,window,
                   photon_counter:PhotonCounter,
-                  default_save_config,
                   running_config:config = config(),
                     *args, **kwargs):
         
@@ -62,7 +61,6 @@ class RunningCountsWidget(Ui_running_counts_widget):
 
         # Setting device controls 
         self.photon_counter = photon_counter
-        self.default_save_config = default_save_config
 
         self.running_config = running_config
         self.dpi = running_config.graph_dpi

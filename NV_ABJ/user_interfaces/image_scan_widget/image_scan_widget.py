@@ -9,10 +9,12 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from PyQt5 import QtWidgets 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
+import h5py
+import os
 
 # Classes for Typing
 from NV_ABJ.experimental_logic.confocal_scanning import ConfocalControls
-from NV_ABJ import DataManager
+from NV_ABJ.utilities.data_manager import DataManager
 
 # Importing generated python code from qtpy ui
 from NV_ABJ.user_interfaces.image_scan_widget.generated_ui import Ui_image_scan_widget
@@ -57,7 +59,8 @@ class ImageScanWidget(Ui_image_scan_widget):
 
     def __init__(self,window,
                   confocal_controls:ConfocalControls,
-                  default_save_folder,
+                  default_save_folder:str=None,
+                  default_save_current_cursor_location:str=None,
                   default_position_um = None,
                   image_scan_config:config = config(),
                   running:bool = False,
@@ -68,6 +71,7 @@ class ImageScanWidget(Ui_image_scan_widget):
 
         # Setting device controls 
         self.confocal_controls = confocal_controls
+        self.default_save_current_cursor_location = default_save_current_cursor_location
         self.default_save_folder = default_save_folder
         self.data_manager = DataManager(default_save_location=self.default_save_folder)
 
@@ -98,6 +102,16 @@ class ImageScanWidget(Ui_image_scan_widget):
         self.x_confocal_spin_box.setValue(self.default_position_um[0])
         self.y_confocal_spin_box.setValue(self.default_position_um[1])
         self.z_confocal_spin_box.setValue(self.default_position_um[2])
+
+        # Adjusting ranges to match the scanner
+        self.x_confocal_spin_box.setMinimum(self.confocal_controls.scanner_x.position_limits_m[0]*1e6)
+        self.x_confocal_spin_box.setMaximum(self.confocal_controls.scanner_x.position_limits_m[1]*1e6)
+
+        self.y_confocal_spin_box.setMinimum(self.confocal_controls.scanner_y.position_limits_m[0]*1e6)
+        self.y_confocal_spin_box.setMaximum(self.confocal_controls.scanner_y.position_limits_m[1]*1e6)
+
+        self.z_confocal_spin_box.setMinimum(self.confocal_controls.scanner_z.position_limits_m[0]*1e6)
+        self.z_confocal_spin_box.setMaximum(self.confocal_controls.scanner_z.position_limits_m[1]*1e6)
 
 
         # Getting frame size
@@ -180,6 +194,7 @@ class ImageScanWidget(Ui_image_scan_widget):
 
     def cursor_update_location(self):
         self._cursor_update_location = True 
+
 
     def insert_ax(self):
         min_x = self.x_scanning_range[0]
@@ -270,10 +285,11 @@ class ImageScanWidget(Ui_image_scan_widget):
 
 
             if self.default_save_folder != None:
-                
-                data = {"xy_scan_sequence":self.worker.xy_scan,
-                        "x_values":self.worker.x_positions,
-                        "y_values":self.worker.y_positions}
+
+                data = {"xy_scan_counts_per_second":self.worker.xy_scan[0],
+                        "x_values":self.worker.xy_scan[1],
+                        "y_values":self.worker.xy_scan[2],
+                        "dwell_time_s":self.worker.dwell_time_s}
                 
                 # Saving data 
                 self.data_manager.save_hdf5(data_dict=data,data_tag="2d_scan")
@@ -329,10 +345,28 @@ class ImageScanWidget(Ui_image_scan_widget):
 
     # Adjusting the confocal based on spin boxes  
     def update_confocal_position(self):
+        if self.default_save_current_cursor_location != None:
+            # Saving variables if no issues present
+            try:
+
+                data_dict = {}
+                data_dict["x_cursor_um"] = self.x_confocal_spin_box.value()
+                data_dict["y_cursor_um"] = self.y_confocal_spin_box.value()
+                data_dict["z_cursor_um"] = self.z_confocal_spin_box.value()
+
+                with h5py.File(self.default_save_current_cursor_location, 'w') as f: 
+                    for data_key in data_dict:
+                        if str(data_to_save := data_dict[data_key]) != str(None):
+                            f.create_dataset(str(data_key), data = data_to_save)#, compression='gzip')
+            except:
+                pass      
+       
         self.confocal_controls.set_position_m(self.x_confocal_spin_box.value()*1e-6,
                                          self.y_confocal_spin_box.value()*1e-6,
                                          self.z_confocal_spin_box.value()*1e-6)
         self.update_cursor()
+  
+
   
     def freeze_gui(self):
         """This is a function that is called to freeze the GUI when another program is running 
@@ -357,3 +391,16 @@ class ImageScanWidget(Ui_image_scan_widget):
         self.y_confocal_spin_box.setEnabled(True)
         self.z_confocal_spin_box.setEnabled(True)
         self.show_cursor_radio_button.setEnabled(True)
+
+if __name__ == "__main__":
+    from experimental_configuration import *
+    from PyQt5.QtWidgets import QApplication,QMainWindow
+
+    app = QApplication(sys.argv)
+    window = QMainWindow()
+    ui = ImageScanWidget(window,
+                         confocal_controls=confocal_controls,
+                         default_save_folder=r"D:\ltspm2_nv_data\image_scans",
+                         default_save_current_cursor_location=r"D:\ltspm2_nv_data\current_cursor_location.hdf5") 
+    window.show()
+    app.exec()

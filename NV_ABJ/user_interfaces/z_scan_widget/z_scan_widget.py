@@ -11,7 +11,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationTool
 from scipy.signal import find_peaks
 # Classes for Typing
 from NV_ABJ.experimental_logic.confocal_scanning import ConfocalControls
-
+from NV_ABJ.utilities.data_manager import DataManager
 # Importing generated python code from qtpy ui
 from NV_ABJ.user_interfaces.z_scan_widget.generated_ui import Ui_z_scan_widget
 #############################################################################################
@@ -61,7 +61,7 @@ class ZScanWidget(Ui_z_scan_widget):
 
     def __init__(self,window,
                   confocal_controls:ConfocalControls,
-                  default_save_config,
+                  default_save_folder,
                   z_scan_config:config = config(),
                     *args, **kwargs):
         
@@ -69,7 +69,9 @@ class ZScanWidget(Ui_z_scan_widget):
 
         # Setting device controls 
         self.confocal_controls = confocal_controls
-        self.default_save_config = default_save_config
+        self.default_save_folder = default_save_folder
+        self.data_manager = DataManager(default_save_location=self.default_save_folder)
+
 
         self.z_scan_config = z_scan_config
         self.dpi = z_scan_config.graph_dpi
@@ -90,6 +92,15 @@ class ZScanWidget(Ui_z_scan_widget):
         self.z_scan_start_button.clicked.connect(self.start_z_scan)
         self.show_peaks_push_button.clicked.connect(self.show_peaks)
         self.peak_distance_spin_box.valueChanged.connect(self.show_peaks)
+
+        self.z_scan_minimum_spin_box.setMinimum(self.confocal_controls.scanner_z.position_limits_m[0]*1e6)
+        self.z_scan_minimum_spin_box.setMaximum(self.confocal_controls.scanner_z.position_limits_m[1]*1e6)
+
+        self.z_scan_maximum_spin_box.setMinimum(self.confocal_controls.scanner_z.position_limits_m[0]*1e6)
+        self.z_scan_maximum_spin_box.setMaximum(self.confocal_controls.scanner_z.position_limits_m[1]*1e6)
+
+        self.z_scan_maximum_spin_box.setValue(self.confocal_controls.scanner_z.position_limits_m[1]*1e6)
+        self.z_scan_minimum_spin_box.setValue(self.confocal_controls.scanner_z.position_limits_m[0]*1e6)
 
 
         ## Graphing 
@@ -222,6 +233,15 @@ class ZScanWidget(Ui_z_scan_widget):
             self.update_z_scan(z_positions=z_positions,z_scan_counts=self.worker.z_scan_counts)
             self.z_scan_start_button.setEnabled(True)
 
+            if self.default_save_folder != None:
+
+                data = {"z_scan_counts_per_second":self.worker.z_scan_counts,
+                        "z_positions":self.worker.z_positions,
+                        "dwell_time_s":self.worker.dwell_time_s}
+                
+                # Saving data 
+                self.data_manager.save_hdf5(data_dict=data,data_tag="z_scan")
+
         # Getting spin box values 
         dwell_time_s = self.z_scan_dwell_time_image_scan_spin_box.value()*1e-3
         x_pos,y_pos,_ = self.confocal_controls.get_position_m()
@@ -271,3 +291,14 @@ class ZScanWidget(Ui_z_scan_widget):
 
 
 
+if __name__ == "__main__":
+    from experimental_configuration import *
+    from PyQt5.QtWidgets import QApplication,QMainWindow
+
+    app = QApplication(sys.argv)
+    window = QMainWindow()
+    ui = ZScanWidget(window,
+                     confocal_controls=confocal_controls,
+                     default_save_folder=r"D:\ltspm2_nv_data\z_scans")
+    window.show()
+    app.exec()
