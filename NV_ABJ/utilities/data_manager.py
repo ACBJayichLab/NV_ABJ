@@ -125,8 +125,18 @@ class DataManager:
             if measurement_parameters_dict != None:
                 for data_key in measurement_parameters_dict:
                     if str(data_to_save := measurement_parameters_dict[data_key]) != str(None):
-                        print(data_to_save)
-                        f.create_dataset(str(data_key), data = data_to_save)
+                        if type(data_to_save) != dict:
+                            if type(data_to_save) == Sequence:
+                                f.create_dataset(f"{data_key}_sub_routines", data = list(data_to_save.instructions()[0]))
+                                f.create_dataset(f"{data_key}_instructions", data = list(data_to_save.instructions()[1]))
+
+                            else:
+                                f.create_dataset(str(data_key), data = data_to_save)
+
+                        else:
+                            for name in data_to_save:
+                                f.create_dataset(str(name), data = data_to_save[name])
+
 
             # Adding attributes to file if needed
             if self._attr != None:
@@ -150,6 +160,16 @@ class DataManager:
     
         return data_dict
     
+    def update_hdf5(self, file_path:str,data_key_name:str,data_values:tuple):
+        """This is a simple function that lets you add to a data_dict of an already existing hdf5 file
+
+        Args:
+            file_path (str): path to the file
+            data_key_name (str): name you want it called by in the file 
+            data_values (tuple): values to be added to file
+        """
+        with h5py.File(file_path,"a") as file:
+            file[data_key_name] = data_values    
 
 
     def search_for_hdf5(self, folder_path:str, attr:attributes):
@@ -204,7 +224,6 @@ class DataManager:
             if name in data_dict.keys():
                 raise NameError(f"You can not use the name:{name} in your data dictionary please select a different name. Protected Names:{protected_names}")
         
-        # data_dict["SequenceClass"] = sequence_class.instructions()
         data_dict["MeasurementNotes"] = measurement_notes
         
         measurement_parameters = {"measurement_name":measurement_name,
@@ -212,10 +231,125 @@ class DataManager:
                                   "number_of_measurements_per_point":number_of_measurements_per_point,
                                   "number_of_points_per_sweep":number_of_points_per_sweep,
                                   "number_of_sweeps":number_of_sweeps,
+                                  "sequence_class":sequence_class
                                   }
 
     
         if file_type == DataManager.file_type.hdf5:
-            self.save_hdf5(data_dict=data_dict,measurement_parameters_dict=measurement_parameters)
+            return self.save_hdf5(data_dict=data_dict,measurement_parameters_dict=measurement_parameters)
         else:
             raise NotImplementedError(f"The requested file type does not have an implemented save functionality")
+        
+
+
+if __name__ == "__main__":
+    import numpy as np
+    import copy
+
+    sample_identifier = "None"
+    probe_identifier = "None"
+
+    # This is a folder that will be saved to in addition to the normal folder leave as None if you want it ignored 
+    additional_save_folder = None
+
+    dwell_time_s = 25e-3
+
+    rf_amplitude = -1
+
+    center_frequency_hz = 2870e6
+    frequency_span_hz = 200e6
+    shuffle_frequencies = True
+
+    track_every_i = 1
+    track_on_first = True
+    display_tracking_graphs = False
+
+    repetitions = 100
+    number_of_points = 200
+
+    current_cursor_file = r"D:\ltspm2_nv_data\current_cursor_location.hdf5"
+
+
+    # Getting current image scan cursor positions 
+    with h5py.File(current_cursor_file,"r") as file: 
+        x_image_scan_current_cursor_um = file["x_cursor_um"][()]
+        y_image_scan_current_cursor_um = file["y_cursor_um"][()]
+        z_image_scan_current_cursor_um = file["z_cursor_um"][()]
+
+    # You can comment out these values if you want a static point for the cursor 
+    x_position_um = x_image_scan_current_cursor_um
+    y_position_um = y_image_scan_current_cursor_um
+    z_position_um = z_image_scan_current_cursor_um
+
+    # Converting to meters because that is the standard unit
+    x_pos = x_position_um*1e-6
+    y_pos = y_position_um*1e-6
+    z_pos = z_position_um*1e-6
+
+
+    # These are properties that almost never need to be changed so they're shifted down to here 
+    averages_at_point = 1 # How many times you sample at a point
+    delayed_start_time_s = 0.1 # How long you wait before the pulse blaster starts (this is actually important for keyed sequences)
+    readout_trigger_duration_s=25e-9 # How long of a trigger is needed for the DAQ to start counting and stop counting 
+
+    # Making the frequency list
+    linear_frequency_list_hz = np.linspace(np.round(center_frequency_hz-frequency_span_hz/2),np.round(center_frequency_hz+frequency_span_hz/2),number_of_points)
+
+    # Shuffling the list
+    if shuffle_frequencies:
+        frequency_list_hz = copy.deepcopy(linear_frequency_list_hz)
+        np.random.shuffle(linear_frequency_list_hz)
+    else:
+        frequency_list_hz = linear_frequency_list_hz
+
+    # Creating a measurement 
+    from NV_ABJ.experimental_logic.sequence_generation.sequences.single_laser_sequences.cwesr_sequence import CWESR
+    from experimental_configuration import *
+    measurement_sequence = CWESR()
+
+    # Setting up the pulse blaster code 
+    seq = measurement_sequence.generate_sequence(readout_time_s=dwell_time_s,
+                                                readout_trigger_duration_s=readout_trigger_duration_s,
+                                                laser_trigger=green_aom_trigger,
+                                                rf_trigger=microwave_switch_1,
+                                                readout_trigger=apd_trigger_1)
+
+    # Running the setup for everything other than the pulse blaster
+    measurement_sequence.experimental_setup(frequency_list_hz=frequency_list_hz,
+                                            rf_amplitude_dbm=np.ones(number_of_points)*rf_amplitude,
+                                            rf_source=signal_generator_1)
+
+    # Preallocating data 
+    esr_data = np.zeros((repetitions,number_of_points))
+    esr_data_sorted = np.zeros((repetitions,number_of_points))
+
+
+
+    # Setting up a save class 
+    # Saving Class Data 
+    cwesr_inputs = {"dwell_time_s":0,
+                    "track_every_i":track_every_i,
+                    "shuffle_frequencies":shuffle_frequencies,
+                    "rf_amplitude_dbm":rf_amplitude,
+                    "number_of_points":number_of_points,
+                    "center_frequency_hz":center_frequency_hz,
+                    "frequency_span_hz":frequency_span_hz,
+                    "sample_identifier":sample_identifier,
+                    "probe_identifier":probe_identifier
+                }
+
+    data_dict = {"frequency_list_hz":frequency_list_hz}
+
+    default_save_location = r"D:\ltspm2_nv_data\cwesr" # You probably won't want to edit this 
+
+    data_manager = DataManager(default_save_location=default_save_location)
+    data_file_name = data_manager.save_measurement_sequence_data(data_dict=data_dict,
+                                                            number_of_measurements_per_point = 1,
+                                                            number_of_points_per_sweep = number_of_points,
+                                                            number_of_sweeps = repetitions,
+                                                            measurement_class_inputs=cwesr_inputs,
+                                                            sequence_class=seq, 
+                                                            measurement_name="cwesr")
+
+    print(data_file_name)
+    print(data_manager.load_hdf5(data_file_name))

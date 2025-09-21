@@ -7,11 +7,15 @@ import matplotlib.pyplot as plt
 import matplotlib
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from PyQt5 import QtWidgets 
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from PyQt5.QtCore import QTimer,QObject, QThread, pyqtSignal
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
 import h5py
 import os
-
+import threading
+import ctypes
+import tempfile
+import shelve
+import time
 # Classes for Typing
 from NV_ABJ.experimental_logic.confocal_scanning import ConfocalControls
 from NV_ABJ.utilities.data_manager import DataManager
@@ -30,7 +34,7 @@ class ImageScanWidget(Ui_image_scan_widget):
         graph_dpi:int = 300
 
     # Asynchronous running of the confocal scanning 
-    class Worker(QObject):
+    class Worker(QObject,threading.Thread):
         finished = pyqtSignal()
         progress = pyqtSignal(int)
 
@@ -41,20 +45,40 @@ class ImageScanWidget(Ui_image_scan_widget):
                         confocal_controls:ConfocalControls,
                         *args,**kwargs):
             
-            super().__init__(*args,**kwargs)
+            super().__init__(*args, **kwargs)
+
             self.dwell_time_s = dwell_time_s
             self.x_positions = x_positions
             self.y_positions = y_positions
             self.z_position = z_position
             self.confocal_controls = confocal_controls
-            self.xy_scan = None
+            self.tf = tempfile.NamedTemporaryFile()
 
         def run(self):
             self.xy_scan = self.confocal_controls.xy_scan(dwell_time_s=self.dwell_time_s ,
                                                                 x_positions=self.x_positions,
                                                                 y_positions=self.y_positions,
-                                                                z_position=self.z_position)
+                                                                z_position=self.z_position,
+                                                                xy_partial = self.tf.name,
+                                                                check_for_cancel = True)
             self.finished.emit()
+
+        def get_id(self):
+
+            # returns id of the respective thread
+            if hasattr(self, '_thread_id'):
+                return self._thread_id
+            for id, thread in threading._active.items():
+                if thread is self:
+                    return id
+                
+        def get_updated_points(self):
+            with shelve.open(self.tf.name,"r") as file:
+                self.xy_scan = [file["xy_scan"],self.x_positions,self.y_positions]
+
+        def close_thread(self):
+            with shelve.open(self.tf.name,"w") as file:
+                file["cancel"] = True
 
 
     def __init__(self,window,
@@ -137,6 +161,18 @@ class ImageScanWidget(Ui_image_scan_widget):
         self.x_confocal_spin_box.valueChanged.connect(self.update_confocal_position)
         self.y_confocal_spin_box.valueChanged.connect(self.update_confocal_position)
         self.z_confocal_spin_box.valueChanged.connect(self.update_confocal_position)
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_partial)
+        self.timer.start(1000)
+
+    def update_partial(self):
+        if self._running:
+            try:
+                self.worker.get_updated_points()
+                self.update_image_scan(self.worker.xy_scan)
+            except:
+                pass
         
 
     # Easy calls for the position limits 
@@ -271,29 +307,31 @@ class ImageScanWidget(Ui_image_scan_widget):
 
         self.canvas.draw()
 
+    def update_after_scan(self):
+        self._running = False
+        self.unfreeze_gui()
+        # adding new image to the ui
+        self.update_image_scan(self.worker.xy_scan)
+        self.full_image_scan_push_button.setEnabled(True)
+        self.local_image_scan_push_button.setEnabled(True)
+
+        self.full_image_scan_push_button.setText("Full Scan")
+        self.local_image_scan_push_button.setText("Local Scan")
+
+        if self.default_save_folder != None:
+
+            data = {"xy_scan_counts_per_second":self.worker.xy_scan[0],
+                    "x_values":self.worker.xy_scan[1],
+                    "y_values":self.worker.xy_scan[2],
+                    "dwell_time_s":self.worker.dwell_time_s}
+            
+            # Saving data 
+            self.data_manager.save_hdf5(data_dict=data,data_tag="2d_scan")
+
+
     def scanning_thread(self,x_positions,y_positions):
         self._running = True
         self.freeze_gui()
-
-        def update_after_scan():
-            self._running = False
-            self.unfreeze_gui()
-            # adding new image to the ui
-            self.update_image_scan(self.worker.xy_scan)
-            self.full_image_scan_push_button.setEnabled(True)
-            self.local_image_scan_push_button.setEnabled(True)
-
-
-            if self.default_save_folder != None:
-
-                data = {"xy_scan_counts_per_second":self.worker.xy_scan[0],
-                        "x_values":self.worker.xy_scan[1],
-                        "y_values":self.worker.xy_scan[2],
-                        "dwell_time_s":self.worker.dwell_time_s}
-                
-                # Saving data 
-                self.data_manager.save_hdf5(data_dict=data,data_tag="2d_scan")
-
 
         # Getting spin box values 
         dwell_time_s = self.dwell_time_image_scan_spin_box.value()*1e-3
@@ -307,7 +345,9 @@ class ImageScanWidget(Ui_image_scan_widget):
                              confocal_controls=self.confocal_controls)
 
         self.worker.moveToThread(self.thread)
+        self.worker.daemon = True
         self.thread.started.connect(self.worker.run)
+        self.thread.daemon = True
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -317,30 +357,55 @@ class ImageScanWidget(Ui_image_scan_widget):
         # Locking the buttons so you can't start a new scan 
         
         # Unlocking the buttons 
-        self.thread.finished.connect(update_after_scan)
+        self.thread.finished.connect(self.update_after_scan)
 
         self.thread
 
     def full_image_scan(self):
-        min_x = self.x_scanning_range[0]
-        max_x = self.x_scanning_range[1]
-        min_y = self.y_scanning_range[0]
-        max_y = self.y_scanning_range[1]
-    
 
-        x_positions = np.linspace(min_x,max_x,self.image_scan_resolution_spin_box.value())
-        y_positions = np.linspace(min_y,max_y,self.image_scan_resolution_spin_box.value())
+        if self._running == True:
 
-        self.scanning_thread(x_positions=x_positions,y_positions=y_positions)
+            self.worker.close_thread()
+
+            self.update_after_scan()
+            self.full_image_scan_push_button.setText("Full Scan")
+            
+        else:
+            min_x = self.x_scanning_range[0]
+            max_x = self.x_scanning_range[1]
+            min_y = self.y_scanning_range[0]
+            max_y = self.y_scanning_range[1]
+        
+
+            x_positions = np.linspace(min_x,max_x,self.image_scan_resolution_spin_box.value())
+            y_positions = np.linspace(min_y,max_y,self.image_scan_resolution_spin_box.value())
+
+
+            self.scanning_thread(x_positions=x_positions,y_positions=y_positions)
+
+            self.full_image_scan_push_button.setText("Stop Scan")
 
     def local_image_scan(self):
-        x_bounds = self.ax.get_xbound()
-        y_bounds = self.ax.get_ybound()
 
-        x_positions = np.linspace(x_bounds[0]*1e-6,x_bounds[1]*1e-6,self.image_scan_resolution_spin_box.value())
-        y_positions = np.linspace(y_bounds[0]*1e-6,y_bounds[1]*1e-6,self.image_scan_resolution_spin_box.value())
+        if self._running == True:
 
-        self.scanning_thread(x_positions=x_positions,y_positions=y_positions)
+            self.worker.close_thread()
+
+            self.update_after_scan()
+            self.local_image_scan_push_button.setText("Local Scan")
+            
+        else:
+            x_bounds = self.ax.get_xbound()
+            y_bounds = self.ax.get_ybound()
+
+            x_positions = np.linspace(x_bounds[0]*1e-6,x_bounds[1]*1e-6,self.image_scan_resolution_spin_box.value())
+            y_positions = np.linspace(y_bounds[0]*1e-6,y_bounds[1]*1e-6,self.image_scan_resolution_spin_box.value())
+
+            self.scanning_thread(x_positions=x_positions,y_positions=y_positions)
+
+            self.local_image_scan_push_button.setText("Stop Scan")
+
+
 
 
     # Adjusting the confocal based on spin boxes  
@@ -371,8 +436,8 @@ class ImageScanWidget(Ui_image_scan_widget):
     def freeze_gui(self):
         """This is a function that is called to freeze the GUI when another program is running 
         """
-        self.full_image_scan_push_button.setEnabled(False)
-        self.local_image_scan_push_button.setEnabled(False)
+        # self.full_image_scan_push_button.setEnabled(False)
+        # self.local_image_scan_push_button.setEnabled(False)
         self.update_cursor_location_push_button.setEnabled(False)
         self.x_confocal_spin_box.setEnabled(False)
         self.y_confocal_spin_box.setEnabled(False)
@@ -384,8 +449,8 @@ class ImageScanWidget(Ui_image_scan_widget):
     def unfreeze_gui(self): 
         """Returns control to all commands for the GUI after the programs have finished running 
         """
-        self.full_image_scan_push_button.setEnabled(True)
-        self.local_image_scan_push_button.setEnabled(True)
+        # self.full_image_scan_push_button.setEnabled(True)
+        # self.local_image_scan_push_button.setEnabled(True)
         self.update_cursor_location_push_button.setEnabled(True)
         self.x_confocal_spin_box.setEnabled(True)
         self.y_confocal_spin_box.setEnabled(True)

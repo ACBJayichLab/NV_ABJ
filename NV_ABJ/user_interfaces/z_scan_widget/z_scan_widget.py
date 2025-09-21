@@ -5,8 +5,10 @@ import numpy as np
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import matplotlib
+import tempfile
+import shelve
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from PyQt5.QtCore import QTimer,QObject, QThread, pyqtSignal
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
 from scipy.signal import find_peaks
 # Classes for Typing
@@ -50,14 +52,25 @@ class ZScanWidget(Ui_z_scan_widget):
             self.z_positions = z_positions
             self.confocal_controls = confocal_controls
             self.z_scan_counts = None
+            self.tf = tempfile.NamedTemporaryFile()
+
 
         def run(self):
             self.z_scan_counts,_ = self.confocal_controls.z_scan(dwell_time_s=self.dwell_time_s ,
                                                                 x_position=self.x_position,
                                                                 y_position=self.y_position,
-                                                                z_positions=self.z_positions)
+                                                                z_positions=self.z_positions,
+                                                                z_partial=self.tf.name,
+                                                                check_for_cancel=True)
             self.finished.emit()
 
+        def get_updated_points(self):
+            with shelve.open(self.tf.name,"r") as file:
+                self.z_scan_counts = file["z_scan"]
+
+        def close_thread(self):
+            with shelve.open(self.tf.name,"w") as file:
+                file["cancel"] = True
 
     def __init__(self,window,
                   confocal_controls:ConfocalControls,
@@ -122,6 +135,17 @@ class ZScanWidget(Ui_z_scan_widget):
         self._z_positions = []
         self._z_counts = []
 
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_partial)
+        self.timer.start(1000)
+
+    def update_partial(self):
+        if self._running:
+            try:
+                self.worker.get_updated_points()
+                self.update_z_scan(self.worker.z_positions,self.worker.z_scan_counts)
+            except:
+                pass
 
 
     def insert_ax(self):
@@ -231,7 +255,7 @@ class ZScanWidget(Ui_z_scan_widget):
             self._z_positions = z_positions
             self._z_counts = self.worker.z_scan_counts
             self.update_z_scan(z_positions=z_positions,z_scan_counts=self.worker.z_scan_counts)
-            self.z_scan_start_button.setEnabled(True)
+            # self.z_scan_start_button.setEnabled(True)
 
             if self.default_save_folder != None:
 
@@ -263,29 +287,39 @@ class ZScanWidget(Ui_z_scan_widget):
         self.thread.start()
 
         # Locking the buttons so you can't start a new scan 
-        self.z_scan_start_button.setEnabled(False)
+        # self.z_scan_start_button.setEnabled(False)
         # Unlocking the buttons 
         self.thread.finished.connect(update_after_scan)
 
         self.thread
 
     def start_z_scan(self): 
-        # Getting the z scan 
-        z_positions = np.linspace(self.z_scan_minimum_spin_box.value()*1e-6,
-                                  self.z_scan_maximum_spin_box.value()*1e-6,
-                                  self.z_scan_number_of_points_spin_box.value())
 
-        self.scanning_thread(z_positions=z_positions)
+        if self._running:
+            self.worker.close_thread()
+            self.z_scan_start_button.setText("Start Scan")
+            
+        else:
+            # Getting the z scan 
+            z_positions = np.linspace(self.z_scan_minimum_spin_box.value()*1e-6,
+                                    self.z_scan_maximum_spin_box.value()*1e-6,
+                                    self.z_scan_number_of_points_spin_box.value())
+            
+            self.z_scan_start_button.setText("Stop Scan")
+
+            self.scanning_thread(z_positions=z_positions)
 
     def freeze_gui(self):
         """This is a function that is called to freeze the GUI when another program is running 
         """
-        self.z_scan_start_button.setEnabled(False)
+        pass
+        # self.z_scan_start_button.setEnabled(False)
     
     def unfreeze_gui(self): 
         """Returns control to all commands for the GUI after the programs have finished running 
         """
-        self.z_scan_start_button.setEnabled(True)
+        pass
+        # self.z_scan_start_button.setEnabled(True)
 
 
 

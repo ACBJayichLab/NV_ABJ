@@ -5,6 +5,8 @@ import numpy as np
 from numpy.typing import NDArray
 from NV_ABJ.abstract_interfaces.photon_counter import PhotonCounter
 from NV_ABJ.abstract_interfaces.scanner import ScannerSingleAxis
+import shelve
+import os
 
 import time
 
@@ -50,7 +52,7 @@ class ConfocalControls:
 
         return x_position, y_position, z_position
 
-    def xy_scan(self,dwell_time_s:float,x_positions:NDArray,y_positions:NDArray,z_position:float,*args,**kwargs)-> tuple:
+    def xy_scan(self,dwell_time_s:float,x_positions:NDArray,y_positions:NDArray,z_position:float,xy_partial:str=None,check_for_cancel:bool=False,*args,**kwargs)-> tuple:
         """An xy scan has the same z height for all points and translates to the x and y positions. This instance of the xy 
         scan iterates between scanning forward and backward so there is no sudden movement to the confocal. The arrays from 
         x and y when added will be sorted to ensure the locations are sequential. 
@@ -109,13 +111,34 @@ class ConfocalControls:
                         line_counts[(x_length-1)-ind_x] = counts
 
                 # Adds a full line at a time 
-                xy_counts[:,ind_y] = line_counts
+                xy_counts[:,ind_y] = np.flip(line_counts).transpose()
 
-            
+                if xy_partial != None:
+                    try:
+                        with shelve.open(xy_partial) as file:
+
+                            if check_for_cancel and file["cancel"]:
+                                cancel_set = True
+
+                        if cancel_set:
+                            os.remove(f"{xy_partial}.bak")
+                            os.remove(f"{xy_partial}.dir")
+                            os.remove(f"{xy_partial}.dat")  
+
+                        break
+                    except:
+                        with shelve.open(xy_partial) as file:
+
+                            file["xy_scan"] = xy_counts
+                            file["x_initial"] = x_initial
+                            file["y_initial"] = y_initial
+                            file["z_initial"] = z_initial
+
+
+                    
+
             # Resetting back to original z position
             z_con.set_position_m(z_original)
-
-        xy_counts = np.rot90(xy_counts)
 
         # Returning to original position
         self.set_position_m(x_position=x_initial,
@@ -124,7 +147,7 @@ class ConfocalControls:
 
         return xy_counts,np.array(x_positions),np.array(y_positions)
     
-    def z_scan(self,dwell_time_s:float,x_position:float,y_position:float, z_positions:NDArray)->tuple:
+    def z_scan(self,dwell_time_s:float,x_position:float,y_position:float, z_positions:NDArray, z_partial:str=None,check_for_cancel:bool=False)->tuple:
         """This is a z scan over a stationary xy position. It then goes through the z positions sequential
         after ordering the lists to be in the correct orientation
 
@@ -158,6 +181,28 @@ class ConfocalControls:
             for ind_z,z_loc in enumerate(z_positions):
                 z_con.set_position_m(z_loc)
                 photon_counts[ind_z] = pc.get_counts_per_second(dwell_time_s)
+
+                
+                if z_partial != None:
+                    try:
+                        with shelve.open(z_partial) as file:
+
+                            if check_for_cancel and file["cancel"]:
+                                cancel_set = True
+
+                        if cancel_set:
+                            os.remove(f"{z_partial}.bak")
+                            os.remove(f"{z_partial}.dir")
+                            os.remove(f"{z_partial}.dat")  
+                               
+                        break
+                    except:
+                        with shelve.open(z_partial) as file:
+
+                            file["z_scan"] = photon_counts
+                            file["x_initial"] = x_initial
+                            file["y_initial"] = y_initial
+                            file["z_initial"] = z_initial
 
         # Returning to original position
         self.set_position_m(x_position=x_initial,
