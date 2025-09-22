@@ -55,12 +55,14 @@ class RunningCountsWidget(Ui_running_counts_widget):
     def __init__(self,window,
                   photon_counter:PhotonCounter,
                   running_config:config = config(),
+                  image_scan_widget=None,
                     *args, **kwargs):
         
         super().__init__(*args, **kwargs)
 
         # Setting device controls 
         self.photon_counter = photon_counter
+        self.image_scan_widget = image_scan_widget
 
         self.running_config = running_config
         self.dpi = running_config.graph_dpi
@@ -239,6 +241,12 @@ class RunningCountsWidget(Ui_running_counts_widget):
         """
         self.running_counts_push_button.setEnabled(False)
         self.running_counts_delay_spin_box.setEnabled(False)
+
+        if self.image_scan_widget != None:
+            self.image_scan_widget.x_confocal_spin_box.setEnabled(True)
+            self.image_scan_widget.y_confocal_spin_box.setEnabled(True)
+            self.image_scan_widget.z_confocal_spin_box.setEnabled(True)
+
     
     def unfreeze_gui(self): 
         """Returns control to all commands for the GUI after the programs have finished running 

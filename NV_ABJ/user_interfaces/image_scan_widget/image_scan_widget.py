@@ -127,6 +127,10 @@ class ImageScanWidget(Ui_image_scan_widget):
         self.y_confocal_spin_box.setValue(self.default_position_um[1])
         self.z_confocal_spin_box.setValue(self.default_position_um[2])
 
+        self.x_offset_um = 0
+        self.y_offset_um = 0
+        self.z_offset_um = 0
+
         # Adjusting ranges to match the scanner
         self.x_confocal_spin_box.setMinimum(self.confocal_controls.scanner_x.position_limits_m[0]*1e6)
         self.x_confocal_spin_box.setMaximum(self.confocal_controls.scanner_x.position_limits_m[1]*1e6)
@@ -196,16 +200,31 @@ class ImageScanWidget(Ui_image_scan_widget):
         if self.cursor_plot:
             self.cursor_plot.remove()
         
+        if self.cursor_offset_plot:
+            self.cursor_offset_plot.remove()
+        
         if self.show_cursor_radio_button.isChecked():
             self.cursor_plot = self.ax.scatter(self.confocal_controls.get_position_m()[0]*1e6,
                                                self.confocal_controls.get_position_m()[1]*1e6,
                                                  marker=self.image_scan_config.cursor_shape,
                                                linewidths=0.5, s=20, facecolors='none', color=self.image_scan_config.cursor_color)
+
+            if self.x_offset_um != 0 or self.y_offset_um != 0 or self.z_offset_um != 0:
+                self.cursor_offset_plot = self.ax.scatter(self.confocal_controls.get_position_m()[0]*1e6+self.x_offset_um,
+                                        self.confocal_controls.get_position_m()[1]*1e6+self.y_offset_um,
+                                        marker="x",
+                                        linewidths=0.5, s=20, facecolors='green', color='green')
+            
         else:
             self.cursor_plot = self.ax.scatter(self.confocal_controls.get_position_m()[0]*1e6,
                                                self.confocal_controls.get_position_m()[1]*1e6,
                                                 marker=self.image_scan_config.cursor_shape,
                                                linewidths=0.5, s=20, facecolors='none', color='None')
+            
+            self.cursor_offset_plot = self.ax.scatter(self.confocal_controls.get_position_m()[0]*1e6+self.x_offset_um,
+                                    self.confocal_controls.get_position_m()[1]*1e6+self.y_offset_um,
+                                    marker=self.image_scan_config.cursor_shape,
+                                    linewidths=0.5, s=20, facecolors='none', color='None')
         self.canvas.draw()
         
 
@@ -253,6 +272,7 @@ class ImageScanWidget(Ui_image_scan_widget):
    
      
         self.cursor_plot = None
+        self.cursor_offset_plot = None
         self.image_scan_plot = None
         self.image_scan_plot_colorbar = None
 
@@ -415,9 +435,9 @@ class ImageScanWidget(Ui_image_scan_widget):
             try:
 
                 data_dict = {}
-                data_dict["x_cursor_um"] = self.x_confocal_spin_box.value()
-                data_dict["y_cursor_um"] = self.y_confocal_spin_box.value()
-                data_dict["z_cursor_um"] = self.z_confocal_spin_box.value()
+                data_dict["x_cursor_um"] = self.x_confocal_spin_box.value()+self.x_offset_um
+                data_dict["y_cursor_um"] = self.y_confocal_spin_box.value()+self.y_offset_um
+                data_dict["z_cursor_um"] = self.z_confocal_spin_box.value()+self.z_offset_um
 
                 with h5py.File(self.default_save_current_cursor_location, 'w') as f: 
                     for data_key in data_dict:

@@ -257,16 +257,6 @@ class ConfocalControls:
             y_pos = np.sum(np.sum(xy_2d_scan, axis=1)*np.flip(y_positions))/np.sum(xy_2d_scan)
 
 
-
-            # flat_index = np.argmax(xy_2d_scan)
-            
-
-            # row_index, col_index = np.unravel_index(flat_index, xy_2d_scan.shape)
-
-            # x_pos = x_positions[col_index]
-            # y_pos = y_positions[xy_number_of_points - row_index - 1]
-
-            # going to x and y position 
             self.set_position_m(x_position=x_pos,
                                     y_position=y_pos,
                                     z_position=z_position_m)
@@ -274,7 +264,6 @@ class ConfocalControls:
 
             z_1d_scan, _ = self.z_scan(dwell_time_s,x_pos,y_pos,z_positions)
 
-            # z_pos = z_positions[np.argmax(z_1d_scan)]
             z_pos = np.sum(z_1d_scan*z_positions)/np.sum(z_1d_scan)
 
 

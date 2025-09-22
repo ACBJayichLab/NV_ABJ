@@ -36,12 +36,19 @@ class TrackingWidget(Ui_TrackingWidget):
                         y_position:float,
                         z_position:float,
                         confocal_controls:ConfocalControls,
+                        x_offset:float,
+                        y_offset:float,
+                        z_offset:float,
                         *args,**kwargs):
             
             super().__init__(*args,**kwargs)
             self.x_position = x_position
             self.y_position = y_position
             self.z_position = z_position
+            self.x_offset = x_offset
+            self.y_offset = y_offset
+            self.z_offset = z_offset
+
             self.confocal_controls = confocal_controls
             self.new_x = None
             self.new_y = None
@@ -51,7 +58,10 @@ class TrackingWidget(Ui_TrackingWidget):
         def run(self):
             self.new_x,self.new_y,self.new_z,self.tracking_graphs = self.confocal_controls.tracking(x_position_m=self.x_position,
                                                     y_position_m=self.y_position,
-                                                    z_position_m=self.z_position)
+                                                    z_position_m=self.z_position,
+                                                    x_offset=self.x_offset,
+                                                    y_offset=self.y_offset,
+                                                    z_offset=self.z_offset)
             self.finished.emit()
 
     def __init__(self,window,
@@ -129,6 +139,8 @@ class TrackingWidget(Ui_TrackingWidget):
         self.tracking_image_scan_plot = None
         self.tracking_image_scan_plot_colorbar = None
         self.tracking_image_position = None
+        self.tracking_image_position_offset = None
+
 
         self.tracking_image_scan_plot = self.image_ax.imshow(np.zeros((self.confocal_controls.tracking_xy_number_of_points,self.confocal_controls.tracking_xy_number_of_points)),
                                                         cmap=self.default_cmap, interpolation='nearest',extent=[min_x*1e6,max_x*1e6,min_y*1e6,max_y*1e6], vmin=0.1)
@@ -162,6 +174,8 @@ class TrackingWidget(Ui_TrackingWidget):
      
         self.z_scan_plot = None
         self.tracking_z_pos = None
+        self.tracking_z_pos_off = None
+
 
         self.tracking_z_scan_plot = self.z_scan_ax.plot(np.zeros(self.confocal_controls.tracking_xy_number_of_points),np.zeros(self.confocal_controls.tracking_xy_number_of_points),
                                                         c=self.config.z_scan_color)[0]
@@ -187,12 +201,17 @@ class TrackingWidget(Ui_TrackingWidget):
         if self.tracking_image_position:
             self.tracking_image_position.remove()
 
+        if self.tracking_image_position_offset:
+            self.tracking_image_position_offset.remove()
 
         xy_counts_image_scan = xy_2d_scan/1000    
 
         self.tracking_image_scan_plot = self.image_ax.imshow(xy_counts_image_scan, cmap=self.default_cmap, interpolation='nearest',
                                               extent=[min(x_positions)*1e6,max(x_positions)*1e6,min(y_positions)*1e6,max(y_positions)*1e6], vmin=0.1)
-        self.tracking_image_position = self.image_ax.scatter(x_pos*1e6,y_pos*1e6,color=self.config.position_marker_color,s=2)
+        self.tracking_image_position = self.image_ax.scatter((x_pos)*1e6-self.x_offset_spin_box.value(),(y_pos)*1e6-self.y_offset_spin_box.value(),color=self.config.position_marker_color,s=2)
+        
+        if self.x_offset_spin_box.value() != float(0) or self.y_offset_spin_box.value() != float(0):
+            self.tracking_image_position_offset =self.image_ax.scatter(x_pos*1e6,y_pos*1e6,marker="X",color="green",s=2)
         
         self.tracking_image_scan_plot.set_extent([min(x_positions)*1e6,max(x_positions)*1e6,min(y_positions)*1e6,max(y_positions)*1e6])
         self.tracking_image_scan_plot.set_clim(np.min(xy_counts_image_scan),np.max(xy_counts_image_scan))
@@ -208,9 +227,16 @@ class TrackingWidget(Ui_TrackingWidget):
 
         if self.tracking_z_pos:
             self.tracking_z_pos.remove()
+        
+        if self.tracking_z_pos_off:
+            self.tracking_z_pos_off.remove()
 
         self.tracking_z_scan_plot = self.z_scan_ax.plot(z_positions*1e6,z_1d_scan/1000, c=self.config.z_scan_color)[0]
-        self.tracking_z_pos = self.z_scan_ax.axvline(z_pos*1e6,linestyle="--",c=self.config.z_scan_position_line_color)
+        self.tracking_z_pos = self.z_scan_ax.axvline((z_pos)*1e6-self.z_offset_spin_box.value(),linestyle="--",c=self.config.z_scan_position_line_color)
+
+        if self.z_offset_spin_box.value() != float(0):
+            self.tracking_z_pos_off = self.z_scan_ax.axvline(z_pos*1e6,linestyle="--",c="green")
+
         self.z_scan_ax.set_xlim([min(z_positions)*1e6,max(z_positions)*1e6])
         self.z_scan_ax.set_ylim([min(z_1d_scan)*1e-3,max(z_1d_scan)*1e-3])
 
@@ -224,6 +250,11 @@ class TrackingWidget(Ui_TrackingWidget):
             self.image_scan_widget.x_confocal_spin_box.setValue(x_pos*1e6)
             self.image_scan_widget.y_confocal_spin_box.setValue(y_pos*1e6)
             self.image_scan_widget.z_confocal_spin_box.setValue(z_pos*1e6)
+
+            self.image_scan_widget.x_offset_um = self.x_offset_spin_box.value()
+            self.image_scan_widget.y_offset_um = self.y_offset_spin_box.value()
+            self.image_scan_widget.z_offset_um = self.z_offset_spin_box.value()
+
             # Calling script to update values on graph
             self.image_scan_widget.update_confocal_position()
 
@@ -252,7 +283,10 @@ class TrackingWidget(Ui_TrackingWidget):
         self.worker = TrackingWidget.Worker(x_position=self.confocal_controls.get_position_m()[0],
                             y_position=self.confocal_controls.get_position_m()[1],
                             z_position=self.confocal_controls.get_position_m()[2],
-                            confocal_controls=self.confocal_controls)
+                            confocal_controls=self.confocal_controls,
+                            x_offset=self.x_offset_spin_box.value()*1e-6,
+                            y_offset=self.y_offset_spin_box.value()*1e-6,
+                            z_offset=self.z_offset_spin_box.value()*1e-6)
 
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
