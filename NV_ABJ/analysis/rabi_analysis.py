@@ -15,44 +15,19 @@ class RabiAnalysis:
         """
         The initial fit  functions for this code were don using Taylors code later modified into a class by Aaron
 
-        driving_frequency = frequency we are driving the microves at in MHz
-        microwave_power = how hard we are driving from the SRS in dB
-        probe_distance = how far the probe is from the sample or item of intrest in nm
-        probe_identifier = the name of the probe for example "L036-E7"
-        sample_identifier = the name of the sample for example "NbN CPW V3"
-
         This is in the form of a numpy array
             two_tau = the tau time given in the files 
-
-        These are in the form of pandas dataframes with the order they were taken in labeled by the columns using integers
-            raw_signal = the raw signal data given in the files
-            raw_ref = the raw refrence data given in the files 
             normalized_data = the raw normalized data from the files 
 
-                0          1          10         11        12         13        14        15        16  ...        91        92         93        94        95        96        97        98         99
-            0   166.5429  147.28570   93.42857  143.82860  163.9429  126.88570  149.3143  158.0571  172.4571  ...  152.4000  167.5429  145.20000  139.5429  158.4000  200.7143  186.6571  154.9714  148.74290
-            1   174.1429  147.65710   89.48571  143.97140  165.2571  125.05710  170.3143  160.7143  161.2857  ...  143.9429  177.2286  138.65710  151.1714  155.5143  199.1143  198.3714  146.6000  146.54290
-            2   169.8000  136.60000   93.08571  104.60000  159.8857  114.85710  180.9429  161.0571  156.6000  ...  153.0857  166.1143  131.60000  149.1714  155.8000  182.3429  195.7714  158.9429  137.28570
-            3   167.3143  124.62860   80.57143   88.97143  153.2857  111.62860  177.6286  169.3429  145.6571  ...  145.7714  164.4571  122.48570  138.8000  155.6571  172.4571  195.7143  158.6286  134.54290
-                    
         """
         self.two_tau = two_tau
-        self.raw_signal = raw_signal
-        self.raw_ref = raw_ref
         self.normalized_data = normalized_data
     
-    @property
-    def average_reference(self):
-        # Takes the average of the reference data
-        return self.raw_ref.mean(axis=0)
+
     @property
     def average_norm(self):
         # Takes the average of the normalized data
         return self.normalized_data.mean(axis=0)
-    @property
-    def average_signal(self):
-        # Takes the average of the signal data
-        return self.raw_signal.mean(axis=0)
     
     @property
     def standard_error(self):
