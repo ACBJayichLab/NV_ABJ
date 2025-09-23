@@ -58,10 +58,7 @@ class TrackingWidget(Ui_TrackingWidget):
         def run(self):
             self.new_x,self.new_y,self.new_z,self.tracking_graphs = self.confocal_controls.tracking(x_position_m=self.x_position,
                                                     y_position_m=self.y_position,
-                                                    z_position_m=self.z_position,
-                                                    x_offset=self.x_offset,
-                                                    y_offset=self.y_offset,
-                                                    z_offset=self.z_offset)
+                                                    z_position_m=self.z_position)
             self.finished.emit()
 
     def __init__(self,window,

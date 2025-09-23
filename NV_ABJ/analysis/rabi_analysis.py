@@ -11,7 +11,7 @@ from scipy.optimize import curve_fit
 
 
 class RabiAnalysis:
-    def __init__(self,two_tau,raw_signal,raw_ref,normalized_data):
+    def __init__(self,two_tau,normalized_data):
         """
         The initial fit  functions for this code were don using Taylors code later modified into a class by Aaron
 
@@ -85,9 +85,7 @@ class RabiAnalysis:
         # Gathering basic class data 
         x_data = self.two_tau/2
         y_data = self.normalized_data.mean(axis=0)
-
-        refMean = np.mean(self.raw_ref.mean(axis=0))
-
+        
         # Guessing initial parameters based on data
         A_guess = (np.max(y_data) - np.min(y_data)) / 2
         c_guess = np.mean(y_data)
