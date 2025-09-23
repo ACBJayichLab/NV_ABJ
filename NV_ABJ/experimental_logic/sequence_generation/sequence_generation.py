@@ -173,10 +173,12 @@ class Sequence:
                 # Getting the devices that will need to be wrapped
                 devices_on_before_start.add(device)
 
+
             step_times_ns.add(-device.delayed_to_on_ns)
 
         time_ns = time_ns + previous_duration
         step_times_ns.add(time_ns)
+
 
 
         # Adds the times the device is already on from the list 
@@ -192,6 +194,7 @@ class Sequence:
                     for device in devices:
                         sequence_devices[device.address]["on_times_ns"].add(time_ns)
                         step_times_ns.add(time_ns)
+
                         
 
                 # If there is a device with a delay in it we want to account for it 
@@ -211,6 +214,7 @@ class Sequence:
 
                         for device_previous in devices_previously_on:
                             sequence_devices[device_previous.address]["on_times_ns"].add(device_time)
+                            sequence_devices[device_previous.address]["on_times_ns"].add(time_ns)
                     
                     # We now need to add the devices that don't have a delay to the timeline 
                     new_devices_on_without_delays = devices-devices_previously_on-devices_with_delays_new
@@ -231,6 +235,9 @@ class Sequence:
             # Updating which devices were previously on
             devices_previously_on = devices
             time_ns = time_ns + duration
+            step_times_ns.add(time_ns)
+
+
 
         # Adding the final time_ns
         step_times_ns.add(time_ns)
@@ -394,105 +401,117 @@ class Sequence:
 
 if __name__ == "__main__":
         
-        # from experimental_configuration import *
+        # # from experimental_configuration import *
 
-        import matplotlib.pyplot as plt 
-        import numpy as np
+        # import matplotlib.pyplot as plt 
+        # import numpy as np
 
-        def generate_sequence(depopulation_time_s:float,iq_time_s:float,pi_pulse_duration_s:float,wait_time_s:float,readout_trigger_duration_s:float,readout_time_s:float,green_pulse_duration_s:float,
-                          rf_iq_trigger:SequenceDevice,rf_trigger:SequenceDevice,laser_trigger:SequenceDevice,readout_trigger:SequenceDevice) -> Sequence:
+        # def generate_sequence(depopulation_time_s:float,iq_time_s:float,pi_pulse_duration_s:float,wait_time_s:float,readout_trigger_duration_s:float,readout_time_s:float,green_pulse_duration_s:float,
+        #                   rf_iq_trigger:SequenceDevice,rf_trigger:SequenceDevice,laser_trigger:SequenceDevice,readout_trigger:SequenceDevice) -> Sequence:
         
-            """This is a pulsed esr sequence utilizing a signal and a reference later that should be normalized to each other"""
-            seq = Sequence()
+        #     """This is a pulsed esr sequence utilizing a signal and a reference later that should be normalized to each other"""
+        #     seq = Sequence()
 
-            # signal
-            seq.add_step(green_pulse_duration_s*1e9                       ,[laser_trigger])
-            seq.add_step((depopulation_time_s-iq_time_s)*1e9              ,[])
-            seq.add_step(iq_time_s*1e9                                    ,[rf_iq_trigger])
-            seq.add_step(pi_pulse_duration_s*1e9                          ,[rf_iq_trigger,rf_trigger])
-            seq.add_step(iq_time_s*1e9                                    ,[rf_iq_trigger])
-            seq.add_step((wait_time_s-iq_time_s)*1e9                      ,[])
-            seq.add_step(readout_trigger_duration_s*1e9                   ,[laser_trigger,readout_trigger])
-            seq.add_step((readout_time_s-readout_trigger_duration_s)*1e9  ,[laser_trigger])
-            seq.add_step((readout_trigger_duration_s)*1e9                 ,[laser_trigger,readout_trigger])
+        #     # signal
+        #     seq.add_step(green_pulse_duration_s*1e9                       ,[laser_trigger])
+        #     seq.add_step((depopulation_time_s-iq_time_s)*1e9              ,[])
+        #     seq.add_step(iq_time_s*1e9                                    ,[rf_iq_trigger])
+        #     seq.add_step(pi_pulse_duration_s*1e9                          ,[rf_iq_trigger,rf_trigger])
+        #     seq.add_step(iq_time_s*1e9                                    ,[rf_iq_trigger])
+        #     seq.add_step((wait_time_s-iq_time_s)*1e9                      ,[])
+        #     seq.add_step(readout_trigger_duration_s*1e9                   ,[laser_trigger,readout_trigger])
+        #     seq.add_step((readout_time_s-readout_trigger_duration_s)*1e9  ,[laser_trigger])
+        #     seq.add_step((readout_trigger_duration_s)*1e9                 ,[laser_trigger,readout_trigger])
 
 
-            # reference
-            seq.add_step(green_pulse_duration_s*1e9                        ,[laser_trigger])
-            seq.add_step(depopulation_time_s*1e9                           ,[])
-            seq.add_step(wait_time_s*1e9                                   ,[])
-            seq.add_step(readout_trigger_duration_s*1e9                    ,[laser_trigger,readout_trigger])
-            seq.add_step((readout_time_s-readout_trigger_duration_s)*1e9   ,[laser_trigger])
-            seq.add_step(readout_trigger_duration_s*1e9                    ,[laser_trigger,readout_trigger])
+        #     # reference
+        #     seq.add_step(green_pulse_duration_s*1e9                        ,[laser_trigger])
+        #     seq.add_step(depopulation_time_s*1e9                           ,[])
+        #     seq.add_step(wait_time_s*1e9                                   ,[])
+        #     seq.add_step(readout_trigger_duration_s*1e9                    ,[laser_trigger,readout_trigger])
+        #     seq.add_step((readout_time_s-readout_trigger_duration_s)*1e9   ,[laser_trigger])
+        #     seq.add_step(readout_trigger_duration_s*1e9                    ,[laser_trigger,readout_trigger])
 
-            return seq
+        #     return seq
                 
-        rf_1_iq_pos_x_trigger = SequenceDevice(address=2,delayed_to_on_ns=0,inverted_output=False,device_label="RF1 IQ+X")
-        rf_1_trigger = SequenceDevice(address=3,delayed_to_on_ns=0,inverted_output=False,device_label="RF1")
-        green_aom_trigger = SequenceDevice(address=0,delayed_to_on_ns=0,inverted_output=False,device_label="Green AOM")
-        apd_1_trigger = SequenceDevice(address=1,delayed_to_on_ns=0,inverted_output=False,device_label="APD Trigger")
+        # rf_1_iq_pos_x_trigger = SequenceDevice(address=2,delayed_to_on_ns=0,inverted_output=False,device_label="RF1 IQ+X")
+        # rf_1_trigger = SequenceDevice(address=3,delayed_to_on_ns=0,inverted_output=False,device_label="RF1")
+        # green_aom_trigger = SequenceDevice(address=0,delayed_to_on_ns=0,inverted_output=False,device_label="Green AOM")
+        # apd_1_trigger = SequenceDevice(address=1,delayed_to_on_ns=0,inverted_output=False,device_label="APD Trigger")
 
-        seq = generate_sequence(depopulation_time_s=200e-9,
-                                            iq_time_s=40e-9,
-                                            pi_pulse_duration_s=75e-9,
-                                            wait_time_s=2000e-9,
-                                            readout_trigger_duration_s=50e-9,
-                                            readout_time_s=400e-9,
-                                            green_pulse_duration_s=2000e-9,
-                                            # Device Trigger
-                                            rf_iq_trigger=rf_1_iq_pos_x_trigger,
-                                            rf_trigger=rf_1_trigger,
-                                            laser_trigger=green_aom_trigger,
-                                            readout_trigger=apd_1_trigger)
+        # seq = generate_sequence(depopulation_time_s=200e-9,
+        #                                     iq_time_s=40e-9,
+        #                                     pi_pulse_duration_s=75e-9,
+        #                                     wait_time_s=2000e-9,
+        #                                     readout_trigger_duration_s=50e-9,
+        #                                     readout_time_s=400e-9,
+        #                                     green_pulse_duration_s=2000e-9,
+        #                                     # Device Trigger
+        #                                     rf_iq_trigger=rf_1_iq_pos_x_trigger,
+        #                                     rf_trigger=rf_1_trigger,
+        #                                     laser_trigger=green_aom_trigger,
+        #                                     readout_trigger=apd_1_trigger)
         
-        seq.add_sub_sequence(seq)
-        inst = seq.instructions()[0]
+        # seq.add_sub_sequence(seq)
+        # inst = seq.instructions()[0]
 
 
-        fig, ax = plt.subplots()
-        time_ns = 0
-        offset_amount = 1
-        offset_device = {}
+        # fig, ax = plt.subplots()
+        # time_ns = 0
+        # offset_amount = 1
+        # offset_device = {}
 
-        color_options = ['#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
+        # color_options = ['#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
 
-        devices = {}
-        for dev in seq.devices:
-            devices[dev.address] = dev
+        # devices = {}
+        # for dev in seq.devices:
+        #     devices[dev.address] = dev
 
-        for inst_ind in inst:
-            line = inst[inst_ind][1]
-            duration = line[0]
-            for device_address in line[1]:
+        # for inst_ind in inst:
+        #     line = inst[inst_ind][1]
+        #     duration = line[0]
+        #     for device_address in line[1]:
                 
 
-                if device_address not in offset_device.keys():
-                    offset_device[device_address] = {"blocks_x":[],"blocks_y":[]}
+        #         if device_address not in offset_device.keys():
+        #             offset_device[device_address] = {"blocks_x":[],"blocks_y":[]}
 
-                offset_device[device_address]["blocks_x"].append([time_ns,time_ns,time_ns+duration,time_ns+duration])
-                offset_device[device_address]["blocks_y"].append(np.array([0,1,1,0]))
+        #         offset_device[device_address]["blocks_x"].append([time_ns,time_ns,time_ns+duration,time_ns+duration])
+        #         offset_device[device_address]["blocks_y"].append(np.array([0,1,1,0]))
 
-            time_ns = time_ns + duration
+        #     time_ns = time_ns + duration
 
-        y_ticks = []
-        y_tick_names = []
+        # y_ticks = []
+        # y_tick_names = []
 
 
 
-        for ind,device_address in enumerate(sorted(offset_device.keys())):
-            color = color_options[device_address]
-            offset = ind
-            y_ticks.append(ind+.5)
-            # y_tick_names.append(devices[device_address].device_label)
+        # for ind,device_address in enumerate(sorted(offset_device.keys())):
+        #     color = color_options[device_address]
+        #     offset = ind
+        #     y_ticks.append(ind+.5)
+        #     # y_tick_names.append(devices[device_address].device_label)
 
-            for block_x, block_y in zip(offset_device[device_address]["blocks_x"],offset_device[device_address]["blocks_y"]):
-                plt.fill(block_x,block_y+offset, color=color)
-        ax.set_yticks(y_ticks)
-        ax.set_yticklabels(y_tick_names)
-        ax.set_xlabel("Time")
-        ax.set_xticklabels([])
-        ax.set_xticks([])
-        plt.show()
-        # inst = seq.steps
-        # for line in inst:
-        #     print(line) 
+        #     for block_x, block_y in zip(offset_device[device_address]["blocks_x"],offset_device[device_address]["blocks_y"]):
+        #         plt.fill(block_x,block_y+offset, color=color)
+        # ax.set_yticks(y_ticks)
+        # ax.set_yticklabels(y_tick_names)
+        # ax.set_xlabel("Time")
+        # ax.set_xticklabels([])
+        # ax.set_xticks([])
+        # plt.show()
+        # # inst = seq.steps
+        # # for line in inst:
+        # #     print(line) 
+        from experimental_configuration import microwave_switch_1,green_aom_trigger,pulse_blaster,rf_1_iq_neg_x
+
+        seq = Sequence()
+
+        seq.add_step(2*1e9,[microwave_switch_1])
+        seq.add_step(2*1e9,[rf_1_iq_neg_x])
+        seq.add_step(2*1e9,[green_aom_trigger])
+        # seq.add_step(2*1e9,[])
+
+        print(seq.linear_time_sequence())
+
+        print(pulse_blaster.generate_sequence(seq))

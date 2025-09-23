@@ -7,6 +7,7 @@ from NV_ABJ.abstract_interfaces.photon_counter import PhotonCounter
 from NV_ABJ.abstract_interfaces.scanner import ScannerSingleAxis
 import shelve
 import os
+import copy
 
 import time
 
@@ -111,9 +112,12 @@ class ConfocalControls:
                         line_counts[(x_length-1)-ind_x] = counts
 
                 # Adds a full line at a time 
-                xy_counts[:,ind_y] = np.flip(line_counts).transpose()
+                xy_counts[:,ind_y] = line_counts
 
                 if xy_partial != None:
+                    temp_xy = copy.deepcopy(xy_counts)
+                    temp_xy = np.rot90(temp_xy)
+
                     try:
                         with shelve.open(xy_partial) as file:
 
@@ -129,7 +133,7 @@ class ConfocalControls:
                     except:
                         with shelve.open(xy_partial) as file:
 
-                            file["xy_scan"] = xy_counts
+                            file["xy_scan"] = temp_xy
                             file["x_initial"] = x_initial
                             file["y_initial"] = y_initial
                             file["z_initial"] = z_initial
@@ -144,6 +148,8 @@ class ConfocalControls:
         self.set_position_m(x_position=x_initial,
                             y_position=y_initial,
                             z_position=z_initial)
+        
+        xy_counts = np.rot90(xy_counts)
 
         return xy_counts,np.array(x_positions),np.array(y_positions)
     
