@@ -23,7 +23,7 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
     def __init__(self,conversion_volts_per_meter_setting:float, device_name_output:str,channel_name_output:str,
                 device_name_input:str = None,channel_name_input:str = None,
                 position_limits_m:tuple = (None,None),conversion_volts_per_meter_getting:float = None,
-                timeout_waiting_for_voltage_set_s:int = 10,stability_voltage_difference:float = 0.004,voltage_sample_rate:int=1000,samples_per_read:int=100):
+                timeout_waiting_for_voltage_set_s:int = 10,stability_voltage_difference:float = 0.004,voltage_sample_rate:int=100000,samples_per_read:int=100):
         """This is a class to control a single axis scanner. A scanner consists of an item where we expect the same amount of movement for a command so if we 
             apply one volt we can expect a certain amount of motion consistently. It uses at a minimum one output port to control the scanner but an input port can be configured 
     
@@ -40,9 +40,9 @@ class NiDaqSingleAxisScanner(ScannerSingleAxis):
             position_limits_m:tuple = (Lower limit on distance, Upper limit on distance) in meters. This is to stop over-volting or going past a arbitrary limit. default (None,None) 
 
             This is the settings for how the daq will wait for a voltage to be reached 
-            timeout_waiting_for_voltage_set_s:int = 10
-            stability_voltage_difference:float = 0.004
-            voltage_sample_rate:int=1000
+            timeout_waiting_for_voltage_set_s:int = 10,
+            stability_voltage_difference:float = 0.004,
+            voltage_sample_rate:int=100000,
             samples_per_read:int=100
         """
         self.conversion_volts_per_meter_setting = conversion_volts_per_meter_setting
