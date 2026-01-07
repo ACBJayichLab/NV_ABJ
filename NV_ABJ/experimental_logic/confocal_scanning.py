@@ -13,7 +13,8 @@ import time
 
 class ConfocalControls:
     def __init__(self,scanner_x:ScannerSingleAxis,scanner_y:ScannerSingleAxis,scanner_z:ScannerSingleAxis,photon_counter:PhotonCounter,
-                tracking_xy_span:float = 1.5e-6,tracking_z_span:float = 3e-6,tracking_dwell_time_s:float = 30e-3,tracking_xy_number_of_points:int = 10,tracking_z_number_of_points:int = 20,tracking_iterations:int=2):
+                tracking_xy_span:float = 1.5e-6,tracking_z_span:float = 3e-6,tracking_dwell_time_s:float = 30e-3,tracking_xy_number_of_points:int = 10,tracking_z_number_of_points:int = 20,tracking_iterations:int=2,
+                tracking_xy_non_linearity_power:float = 8.0,tracking_z_non_linearity_power:float = 2.0):
         self.scanner_x = scanner_x
         self.scanner_y = scanner_y
         self.scanner_z = scanner_z
@@ -26,6 +27,8 @@ class ConfocalControls:
         self.tracking_xy_number_of_points = tracking_xy_number_of_points
         self.tracking_z_number_of_points = tracking_z_number_of_points
         self.tracking_iterations = tracking_iterations
+        self.tracking_xy_non_linearity_power = tracking_xy_non_linearity_power
+        self.tracking_z_non_linearity_power = tracking_z_non_linearity_power
 
     def set_position_m(self,x_position:float,y_position:float,z_position:float)->None:
         """Sets the position of the confocal based on the inputs
@@ -215,7 +218,7 @@ class ConfocalControls:
         
         return photon_counts,np.array(z_positions)
     
-    def tracking(self,x_position_m:float,y_position_m:float,z_position_m:float, go_to_tracked:bool=True, iterations:int = 2)->tuple:
+    def tracking(self,x_position_m:float,y_position_m:float,z_position_m:float, go_to_tracked:bool=True, iterations:int = 2, gaussian_fitting:bool=False)->tuple:
         """This is a tracking module that does a very simple 2D scan selecting the brightest point and proceeds to do a z scan over that point 
 
         Args:
@@ -243,7 +246,24 @@ class ConfocalControls:
         z_pos = z_position_m
 
         iterations = self.tracking_iterations
+        tracking_non_lin_power_xy = self.tracking_xy_non_linearity_power
+        tracking_non_lin_power_z = self.tracking_z_non_linearity_power
 
+        def _gaussian_peak(position_axis: NDArray, counts_axis: NDArray, fallback: float) -> float:
+            """Fit a 1D Gaussian to locate the peak; fall back on centroid when unstable."""
+            positive = counts_axis > 0
+            if np.count_nonzero(positive) < 3:
+                return fallback
+            x_vals = position_axis[positive]
+            y_vals = np.log(counts_axis[positive])
+            try:
+                coeff_a, coeff_b, _ = np.polyfit(x_vals, y_vals, 2)
+            except np.linalg.LinAlgError:
+                return fallback
+            if coeff_a >= 0:
+                return fallback
+            peak = -coeff_b / (2 * coeff_a)
+            return peak
 
         for _ in range(iterations):
 
@@ -255,19 +275,49 @@ class ConfocalControls:
 
             xy_2d_scan, x_positions_sorted, y_positions_sorted = self.xy_scan(dwell_time_s,x_positions,y_positions,z_pos)
 
-            # print(xy_2d_scan,np.sum(xy_2d_scan, axis=0), x_positions,np.sum(xy_2d_scan, axis=0)*x_positions)
-            x_pos = np.sum(np.sum(xy_2d_scan, axis=0)*x_positions_sorted)/np.sum(xy_2d_scan)
-            y_pos = np.sum(np.sum(xy_2d_scan, axis=1)*np.flip(y_positions_sorted))/np.sum(xy_2d_scan)
+            xy_for_weights = np.asarray(xy_2d_scan, dtype=float) - np.min(xy_2d_scan)
+            xy_weights = np.power(xy_for_weights, tracking_non_lin_power_xy)
+            total_xy_counts = np.sum(xy_weights)
+
+            if total_xy_counts <= 0 or not np.isfinite(total_xy_counts):
+                x_centroid = x_pos
+                y_centroid = y_pos
+                x_counts = np.sum(xy_2d_scan, axis=1)
+                y_counts = np.sum(xy_2d_scan, axis=0)
+            else:
+                x_counts = np.sum(xy_weights, axis=1)
+                y_counts = np.sum(xy_weights, axis=0)
+                x_centroid = np.sum(x_counts * x_positions_sorted) / total_xy_counts
+                y_centroid = np.sum(y_counts * y_positions_sorted) / total_xy_counts
+
+            if gaussian_fitting and total_xy_counts > 0:
+                x_pos = _gaussian_peak(x_positions_sorted, x_counts, x_centroid)
+                y_pos = _gaussian_peak(y_positions_sorted, y_counts, y_centroid)
+            else:
+                x_pos = x_centroid
+                y_pos = y_centroid
 
             # Update XY, keep z constant
             self.set_position_m(x_position=x_pos,
                                     y_position=y_pos,
-                                    z_position=z_position_m)
+                                    z_position=z_pos)
 
             # 1D Z Scan (more robust)
             z_1d_scan, _ = self.z_scan(dwell_time_s,x_pos,y_pos,z_positions)
 
-            z_pos = np.sum(z_1d_scan*z_positions)/np.sum(z_1d_scan)
+            z_for_weights = np.asarray(z_1d_scan, dtype=float) - np.min(z_1d_scan)
+            z_weights = np.power(z_for_weights, tracking_non_lin_power_z)
+            total_z_counts = np.sum(z_weights)
+
+            if total_z_counts <= 0 or not np.isfinite(total_z_counts):
+                z_centroid = z_pos
+            else:
+                z_centroid = np.sum(z_weights * z_positions) / total_z_counts
+
+            if gaussian_fitting and total_z_counts > 0:
+                z_pos = _gaussian_peak(z_positions, z_weights, z_centroid)
+            else:
+                z_pos = z_centroid
 
 
 
@@ -282,7 +332,10 @@ class ConfocalControls:
                                 y_position=y_initial,
                                 z_position=z_initial)
 
-
+        # print(f"Tracked Position: x={x_pos*1e6:.3f} um, y={y_pos*1e6:.3f} um, z={z_pos*1e6:.3f} um")
+        # print(f"Initial Position: x={x_initial*1e6:.3f} um, y={y_initial*1e6:.3f} um, z={z_initial*1e6:.3f} um")
+        # print(f"Total XY Counts: {np.sum(xy_2d_scan):.0f}")
+        # print(f"Total Z Counts: {np.sum(z_1d_scan):.0f}")
         return x_pos,y_pos,z_pos,(xy_2d_scan,z_1d_scan,x_positions,y_positions,z_positions)
 
 

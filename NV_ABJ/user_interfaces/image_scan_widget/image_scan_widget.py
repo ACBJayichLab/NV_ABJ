@@ -317,15 +317,7 @@ class ImageScanWidget(Ui_image_scan_widget):
         xy_counts_image_scan = xy_scan[0]/1000
         x_positions = xy_scan[1]
         y_positions = xy_scan[2]
-        # x_positions = [1,2,3,4,5]
-        # y_positions = [2,3,4,5,6]
-        # # Create dummy array with linear gradients: mean x=1000, mean y=2000
-        # x_gradient = np.linspace(0, 1, len(x_positions))
-        # y_gradient = np.linspace(10, 20, len(y_positions))
-        # xy_counts_image_scan = np.outer(y_gradient, x_gradient)
-
-        #self.image_scan_plot = self.ax.imshow(xy_counts_image_scan, cmap=self.default_cmap, interpolation='nearest',
-        #                                      extent=[min(x_positions)*1e6,max(x_positions)*1e6,min(y_positions)*1e6,max(y_positions)*1e6], vmin=0.1,origin='lower')
+        
         # extent sets image boundaries
         # xy_counts_image_scan is indexed as [x_index, y_index]; transpose so display rows follow Y and columns follow X.
         image_data = xy_counts_image_scan.T
