@@ -6,7 +6,7 @@ class ZurichApproaches:
     """
 
     def __init__(self, scanner_device, positioner_device, ):
-        scanner_z_voltage_minimum = 
+        scanner_z_voltage_minimum = 0
         scanner_z_voltage_maximum = 8
         scanner_z_step_size = 5e-3
         scanner_z_voltage_retract_full = True
@@ -20,7 +20,6 @@ class ZurichApproaches:
 
         jpe_z_steps = 100
 
-        zurich_afm_connection = 
 
 
     def MacroscopicApproach():

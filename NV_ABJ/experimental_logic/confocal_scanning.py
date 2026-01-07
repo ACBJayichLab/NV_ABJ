@@ -256,22 +256,21 @@ class ConfocalControls:
 
 
 
-            xy_2d_scan, _ , _ = self.xy_scan(dwell_time_s,x_positions,y_positions,z_pos)
+            xy_2d_scan, x_positions_sorted, y_positions_sorted = self.xy_scan(dwell_time_s,x_positions,y_positions,z_pos)
 
             # print(xy_2d_scan,np.sum(xy_2d_scan, axis=0), x_positions,np.sum(xy_2d_scan, axis=0)*x_positions)
-            x_pos = np.sum(np.sum(xy_2d_scan, axis=0)*x_positions)/np.sum(xy_2d_scan)
-            y_pos = np.sum(np.sum(xy_2d_scan, axis=1)*np.flip(y_positions))/np.sum(xy_2d_scan)
+            x_pos = np.sum(np.sum(xy_2d_scan, axis=0)*x_positions_sorted)/np.sum(xy_2d_scan)
+            y_pos = np.sum(np.sum(xy_2d_scan, axis=1)*np.flip(y_positions_sorted))/np.sum(xy_2d_scan)
 
-
+            # Update XY, keep z constant
             self.set_position_m(x_position=x_pos,
                                     y_position=y_pos,
                                     z_position=z_position_m)
 
-
+            # 1D Z Scan (more robust)
             z_1d_scan, _ = self.z_scan(dwell_time_s,x_pos,y_pos,z_positions)
 
             z_pos = np.sum(z_1d_scan*z_positions)/np.sum(z_1d_scan)
-
 
 
 

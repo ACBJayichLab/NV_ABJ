@@ -1,3 +1,6 @@
+##########################################
+# Run this file to compile module for usage in actual experiment
+##########################################
 import os, shutil, tempfile
 
 # This returns the command line to its original location 
