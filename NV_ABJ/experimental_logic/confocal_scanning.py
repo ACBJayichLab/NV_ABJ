@@ -116,7 +116,6 @@ class ConfocalControls:
 
                 if xy_partial != None:
                     temp_xy = copy.deepcopy(xy_counts)
-                    temp_xy = np.rot90(temp_xy)
 
                     try:
                         with shelve.open(xy_partial) as file:
@@ -148,8 +147,6 @@ class ConfocalControls:
         self.set_position_m(x_position=x_initial,
                             y_position=y_initial,
                             z_position=z_initial)
-        
-        xy_counts = np.rot90(xy_counts)
 
         return xy_counts,np.array(x_positions),np.array(y_positions)
     

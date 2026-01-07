@@ -139,8 +139,15 @@ class TrackingWidget(Ui_TrackingWidget):
         self.tracking_image_position_offset = None
 
 
-        self.tracking_image_scan_plot = self.image_ax.imshow(np.zeros((self.confocal_controls.tracking_xy_number_of_points,self.confocal_controls.tracking_xy_number_of_points)),
-                                                        cmap=self.default_cmap, interpolation='nearest',extent=[min_x*1e6,max_x*1e6,min_y*1e6,max_y*1e6], vmin=0.1)
+        extent = [min_x*1e6, max_x*1e6, min_y*1e6, max_y*1e6]
+        self.tracking_image_scan_plot = self.image_ax.imshow(
+            np.zeros((self.confocal_controls.tracking_xy_number_of_points, self.confocal_controls.tracking_xy_number_of_points)),
+            cmap=self.default_cmap,
+            interpolation="nearest",
+            extent=extent,
+            origin="lower",
+            vmin=0.1,
+        )
 
         self.image_ax.set_xlabel("X(\u03bcm)", loc='right',labelpad=0)
         self.image_ax.set_ylabel("Y(\u03bcm)", loc='top',labelpad=0)
@@ -201,10 +208,18 @@ class TrackingWidget(Ui_TrackingWidget):
         if self.tracking_image_position_offset:
             self.tracking_image_position_offset.remove()
 
-        xy_counts_image_scan = xy_2d_scan/1000    
+        # Transpose so columns follow X positions and rows follow Y positions on the plot.
+        xy_counts_image_scan = (xy_2d_scan/1000).T
+        extent = [min(x_positions)*1e6,max(x_positions)*1e6,min(y_positions)*1e6,max(y_positions)*1e6]
 
-        self.tracking_image_scan_plot = self.image_ax.imshow(xy_counts_image_scan, cmap=self.default_cmap, interpolation='nearest',
-                                              extent=[min(x_positions)*1e6,max(x_positions)*1e6,min(y_positions)*1e6,max(y_positions)*1e6], vmin=0.1)
+        self.tracking_image_scan_plot = self.image_ax.imshow(
+            xy_counts_image_scan,
+            cmap=self.default_cmap,
+            interpolation='nearest',
+            extent=extent,
+            origin='lower',
+            vmin=0.1,
+        )
         self.tracking_image_position = self.image_ax.scatter((x_pos)*1e6-self.x_offset_spin_box.value(),(y_pos)*1e6-self.y_offset_spin_box.value(),color=self.config.position_marker_color,s=2)
         
         if self.x_offset_spin_box.value() != float(0) or self.y_offset_spin_box.value() != float(0):

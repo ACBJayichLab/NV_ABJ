@@ -276,7 +276,15 @@ class ImageScanWidget(Ui_image_scan_widget):
         self.image_scan_plot = None
         self.image_scan_plot_colorbar = None
 
-        self.image_scan_plot = self.ax.imshow(np.zeros((50,50)), cmap=self.default_cmap, interpolation='nearest',extent=[min_x*1e6,max_x*1e6,min_y*1e6,max_y*1e6], vmin=0.1)
+        extent = [min_x*1e6, max_x*1e6, min_y*1e6, max_y*1e6]
+        self.image_scan_plot = self.ax.imshow(
+            np.zeros((50, 50)),
+            cmap=self.default_cmap,
+            interpolation="nearest",
+            extent=extent,
+            origin="lower",
+            vmin=0.1,
+        )
 
         self.ax.set_xlabel("X(\u03bcm)", loc='right',labelpad=0)
         self.ax.set_ylabel("Y(\u03bcm)", loc='top',labelpad=0)
@@ -309,15 +317,30 @@ class ImageScanWidget(Ui_image_scan_widget):
         xy_counts_image_scan = xy_scan[0]/1000
         x_positions = xy_scan[1]
         y_positions = xy_scan[2]
-    
+        # x_positions = [1,2,3,4,5]
+        # y_positions = [2,3,4,5,6]
+        # # Create dummy array with linear gradients: mean x=1000, mean y=2000
+        # x_gradient = np.linspace(0, 1, len(x_positions))
+        # y_gradient = np.linspace(10, 20, len(y_positions))
+        # xy_counts_image_scan = np.outer(y_gradient, x_gradient)
 
-        self.image_scan_plot = self.ax.imshow(xy_counts_image_scan, cmap=self.default_cmap, interpolation='nearest',
-                                              extent=[min(x_positions)*1e6,max(x_positions)*1e6,min(y_positions)*1e6,max(y_positions)*1e6], vmin=0.1)
-        
-        self.ax.set_xbound([min(x_positions)*1e6,max(x_positions)*1e6])
-        self.ax.set_ybound([min(y_positions)*1e6,max(y_positions)*1e6])
-        self.image_scan_plot.set_extent([min(x_positions)*1e6,max(x_positions)*1e6,min(y_positions)*1e6,max(y_positions)*1e6])
-        self.image_scan_plot.set_clim(np.min(xy_counts_image_scan),np.max(xy_counts_image_scan))
+        #self.image_scan_plot = self.ax.imshow(xy_counts_image_scan, cmap=self.default_cmap, interpolation='nearest',
+        #                                      extent=[min(x_positions)*1e6,max(x_positions)*1e6,min(y_positions)*1e6,max(y_positions)*1e6], vmin=0.1,origin='lower')
+        # extent sets image boundaries
+        # xy_counts_image_scan is indexed as [x_index, y_index]; transpose so display rows follow Y and columns follow X.
+        image_data = xy_counts_image_scan.T
+        extent = [min(x_positions)*1e6, max(x_positions)*1e6, min(y_positions)*1e6, max(y_positions)*1e6]
+        self.image_scan_plot = self.ax.imshow(
+            image_data,
+            cmap=self.default_cmap,
+            interpolation="nearest",
+            extent=extent,
+            origin="lower",
+            vmin=0.1,
+        )
+        self.ax.set_xbound(extent[0:2])
+        self.ax.set_ybound(extent[2:4])
+        self.image_scan_plot.set_clim(np.min(image_data), np.max(image_data))
 
         self.image_scan_plot_colorbar.update_normal(self.image_scan_plot)
         self.canvas.figure.tight_layout()
@@ -415,6 +438,7 @@ class ImageScanWidget(Ui_image_scan_widget):
             self.local_image_scan_push_button.setText("Local Scan")
             
         else:
+            # Get bounds is guaranteed to be ordered
             x_bounds = self.ax.get_xbound()
             y_bounds = self.ax.get_ybound()
 
